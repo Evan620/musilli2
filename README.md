@@ -73,12 +73,26 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/f028444c-48b7-4df6-bfd6-875578415a18) and click on Share -> Publish.
+This project can be deployed to any static hosting service:
 
-## Can I connect a custom domain to my Lovable project?
+### Vercel
+```bash
+npm run build
+npx vercel --prod
+```
 
-Yes, you can!
+### Netlify
+```bash
+npm run build
+# Upload dist folder to Netlify
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### GitHub Pages
+```bash
+npm run build
+# Deploy dist folder to gh-pages branch
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Custom Domain Setup
+
+You can connect a custom domain through your hosting provider's domain settings.
