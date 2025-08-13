@@ -9,10 +9,10 @@ interface MortgageCalculatorProps {
   initialPrice?: number;
 }
 
-export const MortgageCalculator = ({ isOpen, onClose, initialPrice = 500000 }: MortgageCalculatorProps) => {
+export const MortgageCalculator = ({ isOpen, onClose, initialPrice = 15000000 }: MortgageCalculatorProps) => { // 15M KSH default
   const [homePrice, setHomePrice] = useState(initialPrice);
   const [downPayment, setDownPayment] = useState(initialPrice * 0.2);
-  const [interestRate, setInterestRate] = useState(6.5);
+  const [interestRate, setInterestRate] = useState(12.5); // Typical Kenyan mortgage rate
   const [loanTerm, setLoanTerm] = useState(30);
   const [monthlyPayment, setMonthlyPayment] = useState(0);
   const [totalInterest, setTotalInterest] = useState(0);
@@ -47,9 +47,9 @@ export const MortgageCalculator = ({ isOpen, onClose, initialPrice = 500000 }: M
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-KE', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'KES',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);

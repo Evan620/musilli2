@@ -7,20 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useProperties } from "@/contexts/PropertyContext";
 import { PropertySearchFilters } from "@/types";
+
 import { Search, MapPin, Eye, MessageSquare, Bed, Bath, Car, Home } from "lucide-react";
 
 const Rentals = () => {
   const { searchProperties, properties } = useProperties();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Check if we should show all properties (from "View All Properties" button)
+  const showAllProperties = searchParams.get('showAll') === 'true';
+
   const [filters, setFilters] = useState<PropertySearchFilters>({
     query: "",
-    category: "rent",
+    category: showAllProperties ? "sale" : "rent",  // When showing all properties, default to sale
     sortBy: "date",
     sortOrder: "desc",
   });
 
   // State for search properties by feature
-  const [searchType, setSearchType] = useState<'sale' | 'rent'>('rent');
+  const [searchType, setSearchType] = useState<'sale' | 'rent'>(showAllProperties ? 'sale' : 'rent');
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
 
   const features = [
@@ -47,13 +52,18 @@ const Rentals = () => {
   };
 
   const getFeatureCount = (feature: string) => {
-    return properties.filter(p =>
-      p.category === searchType &&
-      (p.features.amenities || []).some(amenity =>
-        amenity.toLowerCase().includes(feature.toLowerCase()) ||
-        feature.toLowerCase().includes(amenity.toLowerCase())
-      )
-    ).length;
+    return properties.filter(p => {
+      // When showing all properties, count features across all categories
+      // When in rental mode, only count rental properties
+      const categoryMatch = showAllProperties ? true : p.category === searchType;
+
+      return categoryMatch &&
+        p.status === 'published' &&
+        (p.features.amenities || []).some(amenity =>
+          amenity.toLowerCase().includes(feature.toLowerCase()) ||
+          feature.toLowerCase().includes(amenity.toLowerCase())
+        );
+    }).length;
   };
 
   // Filter properties based on selected features and search type
@@ -61,8 +71,12 @@ const Rentals = () => {
     if (selectedFeatures.length === 0) return [];
 
     return properties.filter(property => {
-      // Filter by category (sale/rent)
-      if (property.category !== searchType) return false;
+      // Filter by status first
+      if (property.status !== 'published') return false;
+
+      // Filter by category (sale/rent) - when showing all properties, include both
+      if (!showAllProperties && property.category !== searchType) return false;
+      if (showAllProperties && property.category !== searchType) return false;
 
       // Check if property has any of the selected features
       const propertyFeatures = property.features.amenities || [];
@@ -77,18 +91,25 @@ const Rentals = () => {
 
   const filteredProperties = getFilteredProperties();
 
+  // Update search type when showAllProperties changes
+  useEffect(() => {
+    if (showAllProperties && searchType === 'rent') {
+      setSearchType('sale'); // Default to 'sale' when showing all properties
+    }
+  }, [showAllProperties, searchType]);
+
   // Initialize filters from URL parameters
   useEffect(() => {
     const urlFilters: PropertySearchFilters = {
       query: searchParams.get('query') || "",
-      category: (searchParams.get('category') as any) || "rent",
+      category: (searchParams.get('category') as any) || (showAllProperties ? undefined : "rent"),
       type: (searchParams.get('type') as any) || undefined,
       city: searchParams.get('city') || undefined,
       sortBy: (searchParams.get('sortBy') as any) || "date",
       sortOrder: (searchParams.get('sortOrder') as any) || "desc",
     };
     setFilters(urlFilters);
-  }, [searchParams]);
+  }, [searchParams, showAllProperties]);
 
   const handleFilterChange = (key: keyof PropertySearchFilters, value: any) => {
     const newFilters = { ...filters, [key]: value };
@@ -96,6 +117,12 @@ const Rentals = () => {
 
     // Update URL parameters
     const newSearchParams = new URLSearchParams();
+
+    // Preserve showAll parameter if it exists
+    if (showAllProperties) {
+      newSearchParams.set('showAll', 'true');
+    }
+
     Object.entries(newFilters).forEach(([k, v]) => {
       if (v && v !== "" && v !== "all") {
         newSearchParams.set(k, v.toString());
@@ -110,27 +137,37 @@ const Rentals = () => {
 
   // Get unique cities for filter dropdown
   const cities = useMemo(() => {
-    const allProperties = searchProperties({ category: "rent" });
+    const allProperties = searchProperties({ category: showAllProperties ? undefined : "rent" });
     const uniqueCities = Array.from(new Set(allProperties.map(p => p.location.city)));
     return uniqueCities.sort();
-  }, [searchProperties]);
+  }, [searchProperties, showAllProperties]);
 
-  const rentalProperties = results.filter(p =>
-    p.category === 'rent' || p.category === 'short-term-rental'
-  );
+  // Apply feature filtering if features are selected
+  const baseProperties = showAllProperties
+    ? results  // When showing all properties, the filters.category already handles the FOR SALE/FOR RENT selection
+    : results.filter(p => p.category === 'rent' || p.category === 'short-term-rental');
+
+  const rentalProperties = selectedFeatures.length > 0
+    ? filteredProperties
+    : baseProperties;
 
   return (
     <main className="container mx-auto py-10">
       <header className="mb-8">
-        <h1 className="text-3xl font-semibold text-gradient">Rental Properties</h1>
+        <h1 className="text-3xl font-semibold text-gradient">
+          {showAllProperties ? 'All Properties' : 'Rental Properties'}
+        </h1>
         <p className="text-muted-foreground">
-          Discover amazing rental properties and short-term stays from verified providers.
+          {showAllProperties
+            ? 'Discover amazing properties for sale and rent from verified providers.'
+            : 'Discover amazing rental properties and short-term stays from verified providers.'
+          }
         </p>
       </header>
 
       {/* Search and Filters */}
       <section className="brutal-card p-6 mb-8 animate-fade-in">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className={`grid gap-4 ${showAllProperties ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
@@ -140,6 +177,19 @@ const Rentals = () => {
               className="pl-10"
             />
           </div>
+
+          {showAllProperties && (
+            <Select value={filters.category || "all"} onValueChange={(value) => handleFilterChange('category', value === "all" ? undefined : value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="sale">For Sale</SelectItem>
+                <SelectItem value="rent">For Rent</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
 
           <Select value={filters.city || "all"} onValueChange={(value) => handleFilterChange('city', value === "all" ? undefined : value)}>
             <SelectTrigger>
@@ -194,7 +244,10 @@ const Rentals = () => {
             <h2 className="text-3xl font-bold" style={{color: 'hsl(158, 64%, 20%)'}}>Search properties by feature</h2>
             <div className="flex gap-0 border border-gray-200 rounded-lg overflow-hidden">
               <button
-                onClick={() => setSearchType('sale')}
+                onClick={() => {
+                  setSearchType('sale');
+                  setFilters(prev => ({ ...prev, category: 'sale' }));
+                }}
                 className={`px-6 py-2 text-sm font-medium transition-colors ${
                   searchType === 'sale'
                     ? 'text-white border-b-2'
@@ -208,7 +261,10 @@ const Rentals = () => {
                 FOR SALE
               </button>
               <button
-                onClick={() => setSearchType('rent')}
+                onClick={() => {
+                  setSearchType('rent');
+                  setFilters(prev => ({ ...prev, category: 'rent' }));
+                }}
                 className={`px-6 py-2 text-sm font-medium transition-colors ${
                   searchType === 'rent'
                     ? 'text-white border-b-2'
@@ -221,6 +277,24 @@ const Rentals = () => {
               >
                 FOR RENT
               </button>
+              {showAllProperties && (
+                <button
+                  onClick={() => {
+                    setFilters(prev => ({ ...prev, category: undefined }));
+                  }}
+                  className={`px-6 py-2 text-sm font-medium transition-colors ${
+                    filters.category === undefined
+                      ? 'text-white border-b-2'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                  style={filters.category === undefined ? {
+                    backgroundColor: 'hsl(174, 100%, 29%)',
+                    borderBottomColor: 'hsl(174, 100%, 29%)'
+                  } : {}}
+                >
+                  ALL
+                </button>
+              )}
             </div>
           </div>
 
@@ -297,179 +371,81 @@ const Rentals = () => {
                 ))}
               </div>
               <div className="mt-2 text-sm text-gray-600">
-                Searching for {searchType === 'sale' ? 'properties for sale' : 'properties for rent'} with {selectedFeatures.length} feature{selectedFeatures.length !== 1 ? 's' : ''}
+                Searching for {
+                  filters.category === undefined
+                    ? 'all properties'
+                    : filters.category === 'sale'
+                      ? 'properties for sale'
+                      : 'properties for rent'
+                } with {selectedFeatures.length} feature{selectedFeatures.length !== 1 ? 's' : ''}
               </div>
             </div>
           )}
 
-          {/* Search Results or Property thumbnails */}
-          <div className="mb-4">
-            {selectedFeatures.length > 0 ? (
+          {/* Feature Search Results */}
+          {selectedFeatures.length > 0 && (
+            <div className="mb-6">
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-700">
-                    Search Results ({filteredProperties.length} properties found)
+                    Feature Search Results ({filteredProperties.length} properties found)
                   </h3>
-                  <Link
-                    to={`/properties?type=${searchType}&features=${selectedFeatures.join(',')}`}
-                    className="text-sm underline" style={{color: 'hsl(174, 100%, 29%)'}}
+                  <button
+                    onClick={() => setSelectedFeatures([])}
+                    className="text-sm underline text-gray-600 hover:text-gray-800"
                   >
-                    View all results
-                  </Link>
+                    Clear filters
+                  </button>
                 </div>
 
-                {filteredProperties.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredProperties.slice(0, 3).map((property) => (
-                      <div key={property.id} className="bg-white rounded-lg p-4 shadow-sm border">
-                        <img
-                          src={property.images[0]?.url || '/placeholder.svg'}
-                          alt={property.title}
-                          className="w-full h-32 object-cover rounded-lg mb-3"
-                        />
-                        <h4 className="font-semibold text-sm mb-1 line-clamp-2">{property.title}</h4>
-                        <p className="text-xs text-gray-600 mb-2">{property.location.city}, {property.location.state}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-sm" style={{color: 'hsl(174, 100%, 29%)'}}>
-                            {property.currency} {property.price.toLocaleString()}
-                          </span>
-                          <Link
-                            to={`/properties/${property.id}`}
-                            className="text-xs underline" style={{color: 'hsl(174, 100%, 29%)'}}
-                          >
-                            View Details →
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
+                {filteredProperties.length === 0 && (
                   <div className="text-center py-8">
                     <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h4 className="text-lg font-semibold text-gray-700 mb-2">
                       No properties found
                     </h4>
                     <p className="text-gray-600 mb-4">
-                      No {searchType === 'sale' ? 'properties for sale' : 'properties for rent'} match your selected features. Try adjusting your filters.
+                      No {
+                        filters.category === undefined
+                          ? 'properties'
+                          : filters.category === 'sale'
+                            ? 'properties for sale'
+                            : 'properties for rent'
+                      } match your selected features. Try adjusting your filters.
                     </p>
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="flex gap-4 overflow-x-auto pb-4">
-                <div className="flex-shrink-0 w-32 h-24 bg-gray-200 rounded-lg overflow-hidden">
-                  <img src="/api/placeholder/128/96" alt="Property" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-shrink-0 w-32 h-24 bg-gray-200 rounded-lg overflow-hidden">
-                  <img src="/api/placeholder/128/96" alt="Property" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-shrink-0 w-32 h-24 bg-gray-200 rounded-lg overflow-hidden">
-                  <img src="/api/placeholder/128/96" alt="Property" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-shrink-0 w-32 h-24 bg-gray-200 rounded-lg overflow-hidden">
-                  <img src="/api/placeholder/128/96" alt="Property" className="w-full h-full object-cover" />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Get an instant property valuation Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div
-            className="relative rounded-2xl overflow-hidden p-8 md:p-12"
-            style={{backgroundColor: 'hsl(158, 64%, 20%)'}}
-          >
-            {/* Content */}
-            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between">
-              <div className="lg:w-1/2 mb-8 lg:mb-0">
-                <div className="flex items-center gap-3 mb-4">
-                  <h2 className="text-3xl md:text-4xl font-bold text-white">
-                    Get an instant property valuation
-                  </h2>
-                  <span
-                    className="px-3 py-1 text-xs font-semibold rounded-full"
-                    style={{backgroundColor: 'hsl(174, 100%, 29%)', color: 'white'}}
-                  >
-                    New
-                  </span>
-                </div>
-                <p className="text-white/90 text-lg mb-6 max-w-md">
-                  Thinking of selling your home? Knowing its current price is a good place to start. Get an accurate, independent valuation and a detailed report here.
-                </p>
-                <button
-                  className="px-8 py-3 rounded-lg font-semibold text-black transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
-                >
-                  Get started
-                </button>
-              </div>
-
-              {/* Property Images Grid */}
-              <div className="lg:w-1/2 relative">
-                <div className="grid grid-cols-3 gap-3 max-w-md ml-auto">
-                  {/* Row 1 */}
-                  <div className="col-span-2 aspect-[4/3] rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/200/150"
-                      alt="Modern house interior"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="House exterior"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Row 2 */}
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="Garden view"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="Pool area"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="Modern architecture"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Row 3 */}
-                  <div className="col-span-2 aspect-[4/3] rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/200/150"
-                      alt="Luxury home"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="Property view"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
+
+
+
+      {/* Property Listings Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold mb-2">
+          {selectedFeatures.length > 0
+            ? `Properties with Selected Features (${rentalProperties.length})`
+            : filters.category === undefined
+              ? `All Properties (${rentalProperties.length})`
+              : filters.category === 'sale'
+                ? `Properties for Sale (${rentalProperties.length})`
+                : `Properties for Rent (${rentalProperties.length})`
+          }
+        </h2>
+        <p className="text-gray-600">
+          {selectedFeatures.length > 0
+            ? `Showing properties that match your selected features: ${selectedFeatures.join(', ')}`
+            : filters.category === undefined
+              ? "Browse all available properties for sale and rent"
+              : filters.category === 'sale'
+                ? "Browse available properties for sale"
+                : "Browse available properties for rent"
+          }
+        </p>
+      </div>
 
       {/* Results */}
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -560,14 +536,18 @@ const Rentals = () => {
                 </div>
 
                 {/* Action Button */}
-                <Button className="w-full mt-4" variant="outline">
-                  View Details
-                </Button>
+                <Link to={`/property/${property.id}`}>
+                  <Button className="w-full mt-4" variant="outline">
+                    View Details
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))
         )}
       </section>
+
+
     </main>
   );
 };

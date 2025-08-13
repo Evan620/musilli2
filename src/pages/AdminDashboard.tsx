@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProperties } from "@/contexts/PropertyContext";
+import { useProviders } from "@/contexts/ProviderContext";
+import { toast } from "@/hooks/use-toast";
 import { AdminStats, Property } from "@/types";
 import {
   Users,
@@ -29,6 +31,7 @@ import {
 const AdminDashboard = () => {
   const { user } = useAuth();
   const { properties, updateProperty } = useProperties();
+  const { providers, pendingProviders: pendingProvidersList, approveProvider, rejectProvider, isLoading: providersLoading } = useProviders();
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalProviders: 0,
@@ -41,15 +44,7 @@ const AdminDashboard = () => {
     activeSubscriptions: 0,
   });
 
-  // Mock data for providers (in real app, this would come from API)
-  const mockProviders = [
-    { id: 'provider-1', name: 'John Provider', email: 'provider@example.com', status: 'approved', joinDate: '2024-01-15' },
-    { id: 'provider-2', name: 'Jane Business', email: 'jane@business.com', status: 'pending', joinDate: '2024-02-20' },
-    { id: 'provider-3', name: 'Mike Properties', email: 'mike@properties.com', status: 'pending', joinDate: '2024-02-25' },
-  ];
-
   const pendingProperties = properties.filter(p => p.status === 'pending');
-  const pendingProviders = mockProviders.filter(p => p.status === 'pending');
 
   useEffect(() => {
     // Calculate admin stats
@@ -58,16 +53,16 @@ const AdminDashboard = () => {
 
     setStats({
       totalUsers: 150, // Mock data
-      totalProviders: mockProviders.length,
-      pendingProviders: pendingProviders.length,
+      totalProviders: providers.length,
+      pendingProviders: pendingProvidersList.length,
       totalProperties: properties.length,
       pendingProperties: pendingProperties.length,
       totalInquiries,
       newInquiries: Math.floor(totalInquiries * 0.2), // Mock: 20% are new
       revenue: 12500, // Mock revenue
-      activeSubscriptions: mockProviders.filter(p => p.status === 'approved').length,
+      activeSubscriptions: providers.filter(p => p.approvalStatus === 'approved').length,
     });
-  }, [properties, pendingProviders.length, pendingProperties.length]);
+  }, [properties, providers, pendingProvidersList, pendingProperties]);
 
   const handleApproveProperty = async (propertyId: string) => {
     await updateProperty(propertyId, { status: 'published' });
@@ -75,6 +70,42 @@ const AdminDashboard = () => {
 
   const handleRejectProperty = async (propertyId: string) => {
     await updateProperty(propertyId, { status: 'rejected' });
+  };
+
+  const handleApproveProvider = async (providerId: string) => {
+    if (user?.id) {
+      const success = await approveProvider(providerId, user.id);
+      if (success) {
+        toast({
+          title: "Provider Approved",
+          description: "The provider has been approved and can now appear in the Partner Agents section.",
+        });
+      } else {
+        toast({
+          title: "Approval Failed",
+          description: "Failed to approve provider. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleRejectProvider = async (providerId: string) => {
+    if (user?.id) {
+      const success = await rejectProvider(providerId, user.id, 'Application rejected by admin');
+      if (success) {
+        toast({
+          title: "Provider Rejected",
+          description: "The provider application has been rejected.",
+        });
+      } else {
+        toast({
+          title: "Rejection Failed",
+          description: "Failed to reject provider. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const getStatusBadge = (status: Property['status']) => {
@@ -279,11 +310,11 @@ const AdminDashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5" />
-                Pending Provider Approvals ({pendingProviders.length})
+                Pending Provider Approvals ({pendingProvidersList.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {pendingProviders.length === 0 ? (
+              {pendingProvidersList.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
@@ -291,20 +322,38 @@ const AdminDashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {pendingProviders.map((provider) => (
+                  {pendingProvidersList.map((provider) => (
                     <div key={provider.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div>
-                        <h3 className="font-semibold">{provider.name}</h3>
-                        <p className="text-sm text-muted-foreground">{provider.email}</p>
-                        <p className="text-xs text-muted-foreground">Applied: {provider.joinDate}</p>
+                        <h3 className="font-semibold">{provider.businessName}</h3>
+                        <p className="text-sm text-muted-foreground">{provider.name} - {provider.email}</p>
+                        <p className="text-xs text-muted-foreground">Applied: {provider.joinedDate}</p>
+                        <p className="text-xs text-muted-foreground">City: {provider.city}</p>
+                        <div className="flex gap-1 mt-1">
+                          {provider.specialties.map((specialty, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {specialty}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="flex items-center space-x-2">
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleApproveProvider(provider.id)}
+                          disabled={providersLoading}
+                        >
                           <CheckCircle className="w-4 h-4 mr-1" />
                           Approve
                         </Button>
-                        <Button size="sm" variant="destructive">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRejectProvider(provider.id)}
+                          disabled={providersLoading}
+                        >
                           <XCircle className="w-4 h-4 mr-1" />
                           Reject
                         </Button>
@@ -322,7 +371,7 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockProviders.map((provider) => (
+                {providers.map((provider) => (
                   <div key={provider.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <h3 className="font-medium">{provider.name}</h3>
@@ -330,8 +379,8 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="flex items-center space-x-4">
-                      <Badge variant={provider.status === 'approved' ? 'default' : 'secondary'}>
-                        {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
+                      <Badge variant={provider.approvalStatus === 'approved' ? 'default' : 'secondary'}>
+                        {provider.approvalStatus.charAt(0).toUpperCase() + provider.approvalStatus.slice(1)}
                       </Badge>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

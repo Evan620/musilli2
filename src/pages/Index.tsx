@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Home, Building2, TrendingUp, Users, Star, Award, Shield, Calendar, Eye, MessageSquare, Bed, Bath, ChevronLeft, TreePine, Palette, Download, Ruler } from "lucide-react";
+import { Search, MapPin, Home, Building2, TrendingUp, Users, Star, Award, Shield, Calendar, Eye, MessageSquare, Bed, Bath, ChevronLeft, TreePine, Palette, Download, Ruler, Phone } from "lucide-react";
 import { useProperties } from "@/contexts/PropertyContext";
+import { useProviders } from "@/contexts/ProviderContext";
 import { useScrollAnimation, useParallaxEffect, use3DScrollEffect } from "@/hooks/useScrollAnimation";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { LiveActivityFeed } from "@/components/ui/live-activity-feed";
@@ -12,6 +13,7 @@ import { PropertyQuickPreview } from "@/components/ui/property-quick-preview";
 import { ChatWidget } from "@/components/ui/chat-widget";
 import { GeometricBackground, FloatingElements } from "@/components/ui/geometric-background";
 import { MortgageCalculator } from "@/components/ui/mortgage-calculator";
+import { PropertyValuationCalculator } from "@/components/ui/property-valuation-calculator";
 import { InteractiveTimeline } from "@/components/ui/interactive-timeline";
 import { PlanPreviewModal } from "@/components/ui/plan-preview-modal";
 import { PlanPurchaseModal } from "@/components/ui/plan-purchase-modal";
@@ -19,6 +21,7 @@ import { useState } from "react";
 
 const Index = () => {
   const { properties } = useProperties();
+  const { approvedProviders } = useProviders();
   const pageRef = useScrollAnimation();
 
   // State for search properties by feature
@@ -83,6 +86,7 @@ const Index = () => {
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorPrice, setCalculatorPrice] = useState(500000);
+  const [showValuationCalculator, setShowValuationCalculator] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [showPlanPreview, setShowPlanPreview] = useState(false);
   const [showPlanPurchase, setShowPlanPurchase] = useState(false);
@@ -174,9 +178,8 @@ const Index = () => {
 
   // Handler for property valuation
   const handleGetValuation = () => {
-    // Open mortgage calculator with default price
-    setCalculatorPrice(500000);
-    setShowCalculator(true);
+    // Open property valuation calculator
+    setShowValuationCalculator(true);
   };
 
   // Handler for call action
@@ -213,6 +216,16 @@ const Index = () => {
   // Get latest 4 published properties
   const latestProperties = properties
     .filter(property => property.status === 'published')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 4);
+
+  // Get partner agent properties (from all approved providers)
+  const approvedProviderIds = approvedProviders.map(provider => provider.id);
+  const partnerProperties = properties
+    .filter(property =>
+      property.status === 'published' &&
+      approvedProviderIds.includes(property.providerId)
+    )
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 4);
 
@@ -347,197 +360,75 @@ const Index = () => {
           <h2 className="text-3xl font-bold mb-12" style={{color: 'hsl(158, 64%, 20%)'}}>Browse our partner agents properties</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Property Card 1 */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300">
-                <img
-                  src="/api/placeholder/300/200"
-                  alt="Palace Villas Ceara"
-                  className="w-full h-full object-cover"
-                />
+            {partnerProperties.length > 0 ? (
+              partnerProperties.map((property) => (
+                <Link key={property.id} to={`/property/${property.id}`} className="block">
+                  <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group">
+                    <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300">
+                      <img
+                        src={property.images[0]?.url || "/api/placeholder/300/200"}
+                        alt={property.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-lg mb-2 text-black group-hover:text-gray-800">{property.title}</h3>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                        <MapPin className="w-4 h-4" />
+                        <span>{property.location.city}</span>
+                      </div>
+                      <div className="text-sm text-gray-600 mb-2">
+                        <span>Delivery Date: Dec 2025</span>
+                      </div>
+                      <div className="text-sm text-gray-600 mb-3">
+                        <span>Price from: {property.currency} {property.price.toLocaleString()}</span>
+                      </div>
+                      <div className="text-sm text-gray-600 mb-4">
+                        <span>Developer: {approvedProviders.find(p => p.id === property.providerId)?.businessName || 'Partner Agent'}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleCall(property.title);
+                          }}
+                          className="flex items-center gap-1 px-3 py-2 text-white text-xs font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
+                          style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
+                        >
+                          <Phone className="w-3 h-3" />
+                          Call
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleWhatsApp(property.title);
+                          }}
+                          className="flex items-center gap-1 px-3 py-2 border-2 text-xs font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
+                          style={{
+                            borderColor: 'hsl(174, 100%, 29%)',
+                            color: 'hsl(174, 100%, 29%)'
+                          }}
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          WhatsApp
+                        </button>
+                        <div className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-gray-600">
+                          <Eye className="w-3 h-3" />
+                          View Details
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              // Fallback to show message if no partner properties
+              <div className="col-span-full text-center py-12">
+                <Home className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No Partner Properties Available</h3>
+                <p className="text-gray-600">Partner agent properties will be displayed here when available.</p>
               </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2">Palace Villas Ceara</h3>
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>The One</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-2">
-                  <span>Delivery Date: Dec 2025</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-3">
-                  <span>Price from: KSH 151,550,000</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-4">
-                  <span>Developer: ELLINGTON</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleCall("Luxury Apartment in Downtown")}
-                    className="flex items-center gap-1 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-                    style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
-                  >
-                    <Eye className="w-4 h-4" />
-                    Call
-                  </button>
-                  <button
-                    onClick={() => handleWhatsApp("Luxury Apartment in Downtown")}
-                    className="flex items-center gap-1 px-4 py-2 border-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-                    style={{
-                      borderColor: 'hsl(174, 100%, 29%)',
-                      color: 'hsl(174, 100%, 29%)'
-                    }}
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    WhatsApp
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Property Card 2 */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="relative h-48 bg-gradient-to-br from-blue-200 to-blue-300">
-                <img
-                  src="/api/placeholder/300/200"
-                  alt="Address Grand Downtown"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2">Address Grand Downtown</h3>
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>Downtown</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-2">
-                  <span>Delivery Date: Dec 2025</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-3">
-                  <span>Price from: KSH 19,800,000</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-4">
-                  <span>Developer: EMAAR & PALACE</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleCall("Modern Villa with Pool")}
-                    className="flex items-center gap-1 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-                    style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
-                  >
-                    <Eye className="w-4 h-4" />
-                    Call
-                  </button>
-                  <button
-                    onClick={() => handleWhatsApp("Modern Villa with Pool")}
-                    className="flex items-center gap-1 px-4 py-2 border-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-                    style={{
-                      borderColor: 'hsl(174, 100%, 29%)',
-                      color: 'hsl(174, 100%, 29%)'
-                    }}
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    WhatsApp
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Property Card 3 */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="relative h-48 bg-gradient-to-br from-green-200 to-green-300">
-                <img
-                  src="/api/placeholder/300/200"
-                  alt="The Acres"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2">The Acres</h3>
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>Dubailand</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-2">
-                  <span>Delivery Date: Dec 2025</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-3">
-                  <span>Price from: KSH 35,000,000</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-4">
-                  <span>Developer: MERAAS</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleCall("Eco-Friendly Townhouse")}
-                    className="flex items-center gap-1 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-                    style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
-                  >
-                    <Eye className="w-4 h-4" />
-                    Call
-                  </button>
-                  <button
-                    onClick={() => handleWhatsApp("Eco-Friendly Townhouse")}
-                    className="flex items-center gap-1 px-4 py-2 border-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-                    style={{
-                      borderColor: 'hsl(174, 100%, 29%)',
-                      color: 'hsl(174, 100%, 29%)'
-                    }}
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    WhatsApp
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Property Card 4 */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="relative h-48 bg-gradient-to-br from-purple-200 to-purple-300">
-                <img
-                  src="/api/placeholder/300/200"
-                  alt="Tales by Beyond"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2">Tales by Beyond</h3>
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>Dubai Marina City</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-2">
-                  <span>Delivery Date: May 2025</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-3">
-                  <span>Price from: KSH 25,000,000</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-4">
-                  <span>Developer: OMNIYAT</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleCall("Luxury Penthouse Suite")}
-                    className="flex items-center gap-1 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-                    style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
-                  >
-                    <Eye className="w-4 h-4" />
-                    Call
-                  </button>
-                  <button
-                    onClick={() => handleWhatsApp("Luxury Penthouse Suite")}
-                    className="flex items-center gap-1 px-4 py-2 border-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-                    style={{
-                      borderColor: 'hsl(174, 100%, 29%)',
-                      color: 'hsl(174, 100%, 29%)'
-                    }}
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    WhatsApp
-                  </button>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -676,9 +567,13 @@ const Index = () => {
                 {filteredProperties.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredProperties.slice(0, 3).map((property) => (
-                      <div key={property.id} className="bg-white rounded-lg p-4 shadow-sm border">
+                      <Link
+                        key={property.id}
+                        to={`/property/${property.id}`}
+                        className="block bg-white rounded-lg p-4 shadow-sm border hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer group"
+                      >
                         <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-gray-900 text-sm">{property.title}</h4>
+                          <h4 className="font-medium text-gray-900 text-sm group-hover:text-gray-700">{property.title}</h4>
                           <span className="text-xs bg-gray-100 px-2 py-1 rounded">
                             {property.category === 'sale' ? 'For Sale' : 'For Rent'}
                           </span>
@@ -698,13 +593,10 @@ const Index = () => {
                             </span>
                           ))}
                         </div>
-                        <Link
-                          to={`/properties/${property.id}`}
-                          className="text-xs underline" style={{color: 'hsl(174, 100%, 29%)'}}
-                        >
+                        <div className="text-xs underline group-hover:no-underline" style={{color: 'hsl(174, 100%, 29%)'}}>
                           View Details →
-                        </Link>
-                      </div>
+                        </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (
@@ -1000,97 +892,35 @@ const Index = () => {
       </section>
 
       {/* Get an instant property valuation Section */}
-      <section className="py-16 bg-white">
+      <section className="py-8 bg-white">
         <div className="container mx-auto px-4">
           <div
-            className="relative rounded-2xl overflow-hidden p-8 md:p-12"
+            className="relative rounded-2xl overflow-hidden p-6 md:p-8"
             style={{backgroundColor: 'hsl(158, 64%, 20%)'}}
           >
             {/* Content */}
-            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between">
-              <div className="lg:w-1/2 mb-8 lg:mb-0">
-                <div className="flex items-center gap-3 mb-4">
-                  <h2 className="text-3xl md:text-4xl font-bold text-white">
-                    Get an instant property valuation
-                  </h2>
-                  <span
-                    className="px-3 py-1 text-xs font-semibold rounded-full"
-                    style={{backgroundColor: 'hsl(174, 100%, 29%)', color: 'white'}}
-                  >
-                    New
-                  </span>
-                </div>
-                <p className="text-white/90 text-lg mb-6 max-w-md">
-                  Thinking of selling your home? Knowing its current price is a good place to start. Get an accurate, independent valuation and a detailed report here.
-                </p>
-                <button
-                  onClick={handleGetValuation}
-                  className="px-8 py-3 rounded-lg font-semibold text-black transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
+            <div className="relative z-10 text-center">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <h2 className="text-3xl md:text-4xl font-bold text-white">
+                  Get an instant property valuation
+                </h2>
+                <span
+                  className="px-3 py-1 text-xs font-semibold rounded-full"
+                  style={{backgroundColor: 'hsl(174, 100%, 29%)', color: 'white'}}
                 >
-                  Get started
-                </button>
+                  New
+                </span>
               </div>
-
-              {/* Property Images Grid */}
-              <div className="lg:w-1/2 relative">
-                <div className="grid grid-cols-3 gap-3 max-w-md ml-auto">
-                  {/* Row 1 */}
-                  <div className="col-span-2 aspect-[4/3] rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/200/150"
-                      alt="Modern house interior"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="House exterior"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Row 2 */}
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="Garden view"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="Pool area"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="Modern architecture"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Row 3 */}
-                  <div className="col-span-2 aspect-[4/3] rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/200/150"
-                      alt="Luxury home"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img
-                      src="/api/placeholder/100/100"
-                      alt="Property view"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
+              <p className="text-white/90 text-lg mb-6 max-w-2xl mx-auto">
+                Thinking of selling your home? Knowing its current price is a good place to start. Get an accurate, independent valuation and a detailed report here.
+              </p>
+              <button
+                onClick={handleGetValuation}
+                className="px-8 py-3 rounded-lg font-semibold text-black transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
+              >
+                Get started
+              </button>
             </div>
           </div>
         </div>
@@ -1308,7 +1138,7 @@ const Index = () => {
           )}
 
           <div className="text-center mt-16">
-            <Link to="/rentals">
+            <Link to="/rentals?showAll=true">
               <Button size="lg" className="h-12 px-8 text-white text-base font-semibold rounded-xl shadow-lg scale-on-hover" style={{backgroundColor: 'hsl(158, 64%, 20%)'}}>
                 <TrendingUp className="w-5 h-5 mr-2" />
                 View All Properties
@@ -1671,7 +1501,7 @@ const Index = () => {
                   <span className="text-black">Become a Provider</span>
                 </Button>
               </Link>
-              <Link to="/rentals">
+              <Link to="/rentals?showAll=true">
                 <Button size="lg" className="h-12 px-8 bg-white/20 border-2 border-white text-white hover:bg-white backdrop-blur-sm text-base font-bold rounded-xl shadow-2xl scale-on-hover group">
                   <Search className="w-5 h-5 mr-3 text-white group-hover:text-black" />
                   <span className="text-white group-hover:text-black">Browse Properties</span>
@@ -1735,6 +1565,12 @@ const Index = () => {
         isOpen={showCalculator}
         onClose={() => setShowCalculator(false)}
         initialPrice={calculatorPrice}
+      />
+
+      {/* Property Valuation Calculator Modal */}
+      <PropertyValuationCalculator
+        isOpen={showValuationCalculator}
+        onClose={() => setShowValuationCalculator(false)}
       />
 
       {/* Plan Preview Modal */}

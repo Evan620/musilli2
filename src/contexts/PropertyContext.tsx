@@ -17,10 +17,10 @@ const mockProperties: Property[] = [
     currency: 'KSH',
     location: {
       address: '123 Ocean Drive',
-      city: 'Lagos',
-      state: 'Lagos State',
-      country: 'Nigeria',
-      zipCode: '100001',
+      city: 'Mombasa',
+      state: 'Mombasa County',
+      country: 'Kenya',
+      zipCode: '80100',
     },
     features: {
       bedrooms: 4,
@@ -61,10 +61,10 @@ const mockProperties: Property[] = [
     currency: 'KSH',
     location: {
       address: '456 City Center',
-      city: 'Accra',
-      state: 'Greater Accra',
-      country: 'Ghana',
-      zipCode: '00233',
+      city: 'Kisumu',
+      state: 'Kisumu County',
+      country: 'Kenya',
+      zipCode: '40100',
     },
     features: {
       bedrooms: 2,
@@ -299,6 +299,183 @@ const mockProperties: Property[] = [
     inquiries: 14,
     isFeatured: false,
   },
+  // Partner Agent Properties
+  {
+    id: 'partner-prop-1',
+    title: 'Palace Villas Ceara',
+    description: 'Luxury villa development in The One with premium finishes and world-class amenities.',
+    type: 'house',
+    category: 'sale',
+    status: 'published',
+    price: 151550000,
+    currency: 'KSH',
+    location: {
+      address: 'The One Development',
+      city: 'Kiambu',
+      state: 'Kiambu County',
+      country: 'Kenya',
+      zipCode: '00900',
+    },
+    features: {
+      bedrooms: 4,
+      bathrooms: 5,
+      area: 4500,
+      areaUnit: 'sqft',
+      parking: 2,
+      furnished: false,
+      petFriendly: true,
+      amenities: ['Private Pool', 'Garden', 'Security', 'Luxury Finishes', 'Premium Location'],
+      utilities: ['Electricity', 'Water', 'Internet', 'Gas'],
+    },
+    images: [
+      {
+        id: 'partner-img-1',
+        url: '/api/placeholder/300/200',
+        alt: 'Palace Villas Ceara exterior',
+        isPrimary: true,
+        order: 1,
+      },
+    ],
+    providerId: 'provider-ellington',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+    publishedAt: new Date('2024-01-01'),
+    views: 450,
+    inquiries: 25,
+    isFeatured: true,
+  },
+  {
+    id: 'partner-prop-2',
+    title: 'Address Grand Downtown',
+    description: 'Modern apartment in the heart of downtown with stunning city views and premium amenities.',
+    type: 'apartment',
+    category: 'sale',
+    status: 'published',
+    price: 19800000,
+    currency: 'KSH',
+    location: {
+      address: 'Downtown District',
+      city: 'Eldoret',
+      state: 'Uasin Gishu County',
+      country: 'Kenya',
+      zipCode: '30100',
+    },
+    features: {
+      bedrooms: 2,
+      bathrooms: 2,
+      area: 1800,
+      areaUnit: 'sqft',
+      parking: 1,
+      furnished: false,
+      petFriendly: false,
+      amenities: ['City Views', 'Gym', 'Security', 'Elevator', 'Modern Design'],
+      utilities: ['Electricity', 'Water', 'Internet', 'Gas'],
+    },
+    images: [
+      {
+        id: 'partner-img-2',
+        url: '/api/placeholder/300/200',
+        alt: 'Address Grand Downtown exterior',
+        isPrimary: true,
+        order: 1,
+      },
+    ],
+    providerId: 'provider-emaar',
+    createdAt: new Date('2024-01-02'),
+    updatedAt: new Date('2024-01-02'),
+    publishedAt: new Date('2024-01-02'),
+    views: 320,
+    inquiries: 18,
+    isFeatured: true,
+  },
+  {
+    id: 'partner-prop-3',
+    title: 'The Acres',
+    description: 'Eco-friendly development in Thika offering sustainable living with modern amenities.',
+    type: 'house',
+    category: 'sale',
+    status: 'published',
+    price: 35000000,
+    currency: 'KSH',
+    location: {
+      address: 'Thika Community',
+      city: 'Thika',
+      state: 'Kiambu County',
+      country: 'Kenya',
+      zipCode: '01000',
+    },
+    features: {
+      bedrooms: 3,
+      bathrooms: 3,
+      area: 2800,
+      areaUnit: 'sqft',
+      parking: 2,
+      furnished: false,
+      petFriendly: true,
+      amenities: ['Eco-Friendly', 'Garden', 'Security', 'Community Pool', 'Sustainable Design'],
+      utilities: ['Electricity', 'Water', 'Internet', 'Solar Power'],
+    },
+    images: [
+      {
+        id: 'partner-img-3',
+        url: '/api/placeholder/300/200',
+        alt: 'The Acres exterior',
+        isPrimary: true,
+        order: 1,
+      },
+    ],
+    providerId: 'provider-meraas',
+    createdAt: new Date('2024-01-03'),
+    updatedAt: new Date('2024-01-03'),
+    publishedAt: new Date('2024-01-03'),
+    views: 280,
+    inquiries: 15,
+    isFeatured: true,
+  },
+  {
+    id: 'partner-prop-4',
+    title: 'Tales by Beyond',
+    description: 'Luxury penthouse development in Machakos with premium finishes and scenic views.',
+    type: 'apartment',
+    category: 'sale',
+    status: 'published',
+    price: 25000000,
+    currency: 'KSH',
+    location: {
+      address: 'Marina District',
+      city: 'Machakos',
+      state: 'Machakos County',
+      country: 'Kenya',
+      zipCode: '90100',
+    },
+    features: {
+      bedrooms: 2,
+      bathrooms: 3,
+      area: 2200,
+      areaUnit: 'sqft',
+      parking: 1,
+      furnished: false,
+      petFriendly: false,
+      amenities: ['Marina Views', 'Luxury Finishes', 'Security', 'Elevator', 'Premium Location'],
+      utilities: ['Electricity', 'Water', 'Internet', 'Gas'],
+    },
+    images: [
+      {
+        id: 'partner-img-4',
+        url: '/api/placeholder/300/200',
+        alt: 'Tales by Beyond exterior',
+        isPrimary: true,
+        order: 1,
+      },
+    ],
+    providerId: 'provider-omniyat',
+    createdAt: new Date('2024-01-04'),
+    updatedAt: new Date('2024-01-04'),
+    publishedAt: new Date('2024-01-04'),
+    views: 380,
+    inquiries: 22,
+    isFeatured: true,
+  },
 ];
 
 interface PropertyProviderProps {
@@ -312,17 +489,33 @@ export const PropertyProvider: React.FC<PropertyProviderProps> = ({ children }) 
 
   useEffect(() => {
     // Load properties from localStorage or use mock data
+    // Clear old cached data and use updated mock data with KSH currency
     const storedProperties = localStorage.getItem('musilli_properties');
-    if (storedProperties) {
+    const dataVersion = localStorage.getItem('musilli_properties_version');
+    const currentVersion = '2.0'; // Updated version with KSH currency
+
+    if (storedProperties && dataVersion === currentVersion) {
       try {
         const parsedProperties = JSON.parse(storedProperties);
-        setProperties(parsedProperties);
+        // Double-check that all properties have KSH currency
+        const hasOldCurrency = parsedProperties.some((p: Property) => p.currency !== 'KSH');
+        if (hasOldCurrency) {
+          console.log('Found old currency data, refreshing with KSH...');
+          setProperties(mockProperties);
+          localStorage.setItem('musilli_properties_version', currentVersion);
+        } else {
+          setProperties(parsedProperties);
+        }
       } catch (error) {
         console.error('Error parsing stored properties:', error);
         setProperties(mockProperties);
+        localStorage.setItem('musilli_properties_version', currentVersion);
       }
     } else {
+      // Use fresh mock data with KSH currency
+      console.log('Loading fresh property data with KSH currency...');
       setProperties(mockProperties);
+      localStorage.setItem('musilli_properties_version', currentVersion);
     }
     setIsLoading(false);
   }, []);

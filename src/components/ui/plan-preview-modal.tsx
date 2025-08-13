@@ -20,7 +20,7 @@ interface PlanPreviewModalProps {
     isFeatured?: boolean;
   };
   onClose: () => void;
-  onPurchase: (planId: string) => void;
+  onPurchase: (plan: any) => void;
 }
 
 export const PlanPreviewModal = ({ plan, onClose, onPurchase }: PlanPreviewModalProps) => {
@@ -237,7 +237,7 @@ export const PlanPreviewModal = ({ plan, onClose, onPurchase }: PlanPreviewModal
             {/* Action Buttons */}
             <div className="space-y-3">
               <Button
-                onClick={() => onPurchase(plan.id)}
+                onClick={() => onPurchase(plan)}
                 className="w-full text-white font-semibold rounded-lg h-12"
                 style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
               >

@@ -90,7 +90,7 @@ const SiteFooter = () => {
               </div>
               <div className="flex items-center gap-3 text-gray-300">
                 <Phone className="w-5 h-5 text-white" />
-                <span>+1 (555) 123-4567</span>
+                <span>+254 700 123 456</span>
               </div>
               <div className="text-gray-300">
                 Available 24/7 for all your real estate needs

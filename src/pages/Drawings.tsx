@@ -3,14 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PlanPreviewModal } from "@/components/ui/plan-preview-modal";
+import { PlanPurchaseModal } from "@/components/ui/plan-purchase-modal";
 import { useState } from "react";
-import { Search, Download, Eye, Ruler, Bed, Bath, Home, Building2, TreePine, Star } from "lucide-react";
+import { Search, Download, Eye, Ruler, Bed, Bath, Home, Building2, TreePine, Star, TrendingUp, Award } from "lucide-react";
 
 const architecturalPlans = [
   {
     id: "1",
     title: "Minimalist 3-Bedroom Villa",
-    image: "/placeholder.svg",
+    image: "/api/placeholder/400/300",
     category: "Villa",
     bedrooms: 3,
     bathrooms: 2,
@@ -26,7 +28,7 @@ const architecturalPlans = [
   {
     id: "2",
     title: "Urban Duplex Concept",
-    image: "/placeholder.svg",
+    image: "/api/placeholder/400/300",
     category: "Duplex",
     bedrooms: 4,
     bathrooms: 3,
@@ -42,7 +44,7 @@ const architecturalPlans = [
   {
     id: "3",
     title: "Eco-Friendly Cottage",
-    image: "/placeholder.svg",
+    image: "/api/placeholder/400/300",
     category: "Cottage",
     bedrooms: 2,
     bathrooms: 1,
@@ -58,7 +60,7 @@ const architecturalPlans = [
   {
     id: "4",
     title: "Luxury Penthouse Blueprint",
-    image: "/placeholder.svg",
+    image: "/api/placeholder/400/300",
     category: "Penthouse",
     bedrooms: 4,
     bathrooms: 4,
@@ -74,7 +76,7 @@ const architecturalPlans = [
   {
     id: "5",
     title: "Family Bungalow",
-    image: "/placeholder.svg",
+    image: "/api/placeholder/400/300",
     category: "Bungalow",
     bedrooms: 3,
     bathrooms: 2,
@@ -90,7 +92,7 @@ const architecturalPlans = [
   {
     id: "6",
     title: "Modern Townhouse",
-    image: "/placeholder.svg",
+    image: "/api/placeholder/400/300",
     category: "Townhouse",
     bedrooms: 3,
     bathrooms: 2,
@@ -109,6 +111,35 @@ const Drawings = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("featured");
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [showPlanPreview, setShowPlanPreview] = useState(false);
+  const [showPlanPurchase, setShowPlanPurchase] = useState(false);
+  const [planToPurchase, setPlanToPurchase] = useState<any>(null);
+
+  // Handler functions for architectural plans
+  const handlePlanPreview = (plan: any) => {
+    setSelectedPlan(plan);
+    setShowPlanPreview(true);
+  };
+
+  const handlePlanPurchase = (plan: any) => {
+    setPlanToPurchase(plan);
+    setShowPlanPurchase(true);
+    setShowPlanPreview(false);
+  };
+
+  const handlePurchaseSuccess = (planId: string) => {
+    setShowPlanPurchase(false);
+    setPlanToPurchase(null);
+    alert(`Successfully purchased plan! Download links sent to your email.`);
+  };
+
+  const closePlanModals = () => {
+    setShowPlanPreview(false);
+    setShowPlanPurchase(false);
+    setSelectedPlan(null);
+    setPlanToPurchase(null);
+  };
 
   // Filter and sort plans
   const filteredPlans = architecturalPlans
@@ -137,23 +168,61 @@ const Drawings = () => {
 
   return (
     <main className="container mx-auto py-10">
-      <header className="mb-8">
-        <h1 className="text-3xl font-semibold text-gradient">House Architectural Plans</h1>
-        <p className="text-muted-foreground">
-          Professional architectural drawings and blueprints for your dream home. Ready-to-build plans with detailed specifications.
-        </p>
+      {/* Enhanced Header */}
+      <header className="mb-12 text-center">
+        <div className="mb-6">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">
+            House Architectural Plans
+          </h1>
+          <p className="text-white text-lg max-w-3xl mx-auto leading-relaxed">
+            Professional architectural drawings and blueprints for your dream home. Ready-to-build plans with detailed specifications, 3D renders, and construction-ready documents.
+          </p>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-center mb-2">
+              <Home className="w-8 h-8" style={{color: 'hsl(174, 100%, 29%)'}} />
+            </div>
+            <div className="text-2xl font-bold text-gray-900">{architecturalPlans.length}</div>
+            <div className="text-sm text-gray-600">Available Plans</div>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-center mb-2">
+              <TrendingUp className="w-8 h-8" style={{color: 'hsl(174, 100%, 29%)'}} />
+            </div>
+            <div className="text-2xl font-bold text-gray-900">
+              {architecturalPlans.reduce((sum, plan) => sum + plan.downloads, 0)}
+            </div>
+            <div className="text-sm text-gray-600">Total Downloads</div>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-center mb-2">
+              <Award className="w-8 h-8" style={{color: 'hsl(174, 100%, 29%)'}} />
+            </div>
+            <div className="text-2xl font-bold text-gray-900">
+              {architecturalPlans.filter(plan => plan.isFeatured).length}
+            </div>
+            <div className="text-sm text-gray-600">Featured Designs</div>
+          </div>
+        </div>
       </header>
 
       {/* Search and Filters */}
-      <section className="brutal-card p-6 mb-8 animate-fade-in">
+      <section className="bg-white rounded-2xl p-6 mb-8 shadow-lg border border-gray-100">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Find Your Perfect Plan</h3>
+          <p className="text-gray-600 text-sm">Search and filter through our collection of architectural designs</p>
+        </div>
         <div className="grid gap-4 md:grid-cols-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               placeholder="Search plans..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 
@@ -222,7 +291,7 @@ const Drawings = () => {
           </div>
         ) : (
           filteredPlans.map((plan) => (
-            <Card key={plan.id} className="brutal-card overflow-hidden hover-scale transition-transform duration-200 hover:-translate-y-0.5">
+            <Card key={plan.id} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
               <div className="relative">
                 <img
                   src={plan.image}
@@ -305,6 +374,7 @@ const Drawings = () => {
                 {/* Action Buttons */}
                 <div className="flex gap-2">
                   <Button
+                    onClick={() => handlePlanPreview(plan)}
                     className="flex-1 text-white font-medium rounded-lg transition-all duration-200 hover:scale-105"
                     style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
                   >
@@ -312,6 +382,7 @@ const Drawings = () => {
                     Preview
                   </Button>
                   <Button
+                    onClick={() => handlePlanPurchase(plan)}
                     variant="outline"
                     className="flex-1 border-2 font-medium rounded-lg transition-all duration-200 hover:scale-105"
                     style={{
@@ -328,6 +399,24 @@ const Drawings = () => {
           ))
         )}
       </section>
+
+      {/* Plan Preview Modal */}
+      {showPlanPreview && selectedPlan && (
+        <PlanPreviewModal
+          plan={selectedPlan}
+          onClose={closePlanModals}
+          onPurchase={handlePlanPurchase}
+        />
+      )}
+
+      {/* Plan Purchase Modal */}
+      {showPlanPurchase && planToPurchase && (
+        <PlanPurchaseModal
+          plan={planToPurchase}
+          onClose={closePlanModals}
+          onSuccess={handlePurchaseSuccess}
+        />
+      )}
     </main>
   );
 };

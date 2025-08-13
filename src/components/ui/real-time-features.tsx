@@ -38,7 +38,7 @@ export const WeatherIntegration = ({ propertyLocation }: { propertyLocation?: st
         const randomCondition = conditions[Math.floor(Math.random() * conditions.length)];
         
         setWeather({
-          temperature: Math.floor(Math.random() * 30) + 60, // 60-90°F
+          temperature: Math.floor(Math.random() * 15) + 20, // 20-35°C (typical Kenyan weather)
           condition: randomCondition,
           location: propertyLocation || 'Current Location'
         });
@@ -75,7 +75,7 @@ export const WeatherIntegration = ({ propertyLocation }: { propertyLocation?: st
   return (
     <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2">
       {getWeatherIcon(weather.condition)}
-      <span className="font-medium">{weather.temperature}°F</span>
+      <span className="font-medium">{weather.temperature}°C</span>
       <span className="text-xs text-gray-500">{weather.location}</span>
     </div>
   );
@@ -95,7 +95,7 @@ export const MarketPulse = () => {
         trend: randomTrend,
         percentage: Math.random() * 10 - 5, // -5% to +5%
         volume: Math.floor(Math.random() * 1000) + 500,
-        avgPrice: Math.floor(Math.random() * 200000) + 400000 // $400k-$600k
+        avgPrice: Math.floor(Math.random() * 10000000) + 20000000 // KSH 20M-30M
       });
     };
 
@@ -151,7 +151,7 @@ export const MarketPulse = () => {
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">Avg Price</span>
           <span className="text-sm font-medium text-gray-900">
-            ${marketData.avgPrice.toLocaleString()}
+            KSH {marketData.avgPrice.toLocaleString()}
           </span>
         </div>
       </div>

@@ -12,7 +12,7 @@ import { useProperties } from "@/contexts/PropertyContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { PropertyFormData, PropertyType, PropertyCategory } from "@/types";
-import { Home, MapPin, DollarSign, Upload, Plus } from "lucide-react";
+import { Home, MapPin, Banknote, Upload, Plus } from "lucide-react";
 
 const AddProperty = () => {
   const navigate = useNavigate();
@@ -26,12 +26,12 @@ const AddProperty = () => {
     type: "house",
     category: "sale",
     price: 0,
-    currency: "USD",
+    currency: "KSH",
     location: {
       address: "",
       city: "",
       state: "",
-      country: "",
+      country: "Kenya",
       zipCode: "",
     },
     features: {
@@ -204,7 +204,7 @@ const AddProperty = () => {
         <Card className="brutal-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
+              <Banknote className="w-5 h-5" />
               Pricing
             </CardTitle>
           </CardHeader>
@@ -230,10 +230,10 @@ const AddProperty = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="KSH">KSH (Kenyan Shilling)</SelectItem>
                     <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="NGN">NGN (₦)</SelectItem>
-                    <SelectItem value="GHS">GHS (₵)</SelectItem>
-                    <SelectItem value="KES">KES (KSh)</SelectItem>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                    <SelectItem value="GBP">GBP (£)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

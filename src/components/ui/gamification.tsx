@@ -55,7 +55,7 @@ const initialAchievements: Achievement[] = [
   {
     id: 'luxury-seeker',
     title: 'Luxury Connoisseur',
-    description: 'View 5 luxury properties over $1M',
+    description: 'View 5 luxury properties over KSH 50M',
     icon: <Crown className="w-5 h-5" />,
     progress: 0,
     maxProgress: 5,

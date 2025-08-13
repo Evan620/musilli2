@@ -8,7 +8,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { Building2, Home, Map, Palette, Users, Settings, Search, TrendingUp, Zap, LogIn, LogOut, User, Plus, Calendar, TreePine, Download } from "lucide-react";
+import { Building2, Home, Map, Palette, Users, Settings, Search, TrendingUp, Zap, LogIn, LogOut, User, Plus, Calendar, TreePine, Download, Star } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,7 +111,7 @@ const SiteHeader = () => {
                         Office buildings and retail spaces
                       </p>
                     </Link>
-                    <Link to="/rentals" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                    <Link to="/rentals?showAll=true" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
                       <div className="text-sm font-medium leading-none flex items-center gap-2">
                         <Search className="w-4 h-4" />
                         Browse All Properties
@@ -214,7 +214,7 @@ const SiteHeader = () => {
             </NavigationMenuItem>
 
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="bg-white/10 text-white border border-white/20 hover:bg-white/20 data-[state=open]:bg-white/20">
+              <NavigationMenuTrigger className="bg-transparent text-gray-700 hover:text-red-600 data-[state=open]:text-red-600">
                 <Users className="w-4 h-4 mr-2" />
                 For Providers
               </NavigationMenuTrigger>
@@ -256,6 +256,46 @@ const SiteHeader = () => {
                       </div>
                       <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                         Architectural plans and 3D visualizations
+                      </p>
+                    </Link>
+                  </div>
+                </div>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <NavigationMenuTrigger className="bg-transparent text-gray-700 hover:text-red-600 data-[state=open]:text-red-600">
+                Our Partner Agents
+              </NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <div className="grid gap-3 p-6 md:w-[450px] bg-background/95 backdrop-blur-sm border shadow-lg z-[120]" style={{zIndex: 9999, position: 'relative'}}>
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-foreground mb-3">Find Real Estate Professionals</h4>
+                    <Link to="/partners" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                      <div className="text-sm font-medium leading-none flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Browse All Partners
+                      </div>
+                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                        View our verified real estate agents and agencies
+                      </p>
+                    </Link>
+                    <Link to="/partners?filter=premium" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                      <div className="text-sm font-medium leading-none flex items-center gap-2">
+                        <Star className="w-4 h-4" />
+                        Premium Partners
+                      </div>
+                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                        Top-rated agencies with premium services
+                      </p>
+                    </Link>
+                    <Link to="/partners?city=Nairobi" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                      <div className="text-sm font-medium leading-none flex items-center gap-2">
+                        <Building2 className="w-4 h-4" />
+                        Nairobi Agents
+                      </div>
+                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                        Find local experts in Nairobi area
                       </p>
                     </Link>
                   </div>

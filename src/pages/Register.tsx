@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
-import { ProviderRegistrationData } from "@/types";
 import { Building2, Users, CheckCircle, ArrowLeft } from "lucide-react";
+import { useProviders, ProviderRegistrationData } from "@/contexts/ProviderContext";
 
 const Register = () => {
   const navigate = useNavigate();
+  const { registerProvider, isLoading: providerLoading } = useProviders();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState<ProviderRegistrationData>({
@@ -46,18 +47,21 @@ const Register = () => {
       return;
     }
 
-    // Simulate API call
+    // Register provider
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const result = await registerProvider(formData);
 
-      // In a real app, this would save to database and send notification to admin
-      toast({
-        title: "Registration submitted successfully!",
-        description: "Your application will be reviewed by our admin team. You'll receive an email notification once approved."
-      });
+      if (result.success) {
+        toast({
+          title: "Registration submitted successfully!",
+          description: "Your application will be reviewed by our admin team. You'll receive an email notification once approved."
+        });
 
-      // Redirect to login page
-      navigate("/login");
+        // Redirect to login page
+        navigate("/login");
+      } else {
+        setError(result.error || "Registration failed. Please try again.");
+      }
     } catch (err) {
       setError("Failed to submit registration. Please try again.");
     } finally {
@@ -170,7 +174,7 @@ const Register = () => {
                     <Input
                       id="businessPhone"
                       type="tel"
-                      placeholder="+1 (555) 987-6543"
+                      placeholder="+254 700 123 456"
                       value={formData.businessPhone}
                       onChange={(e) => handleInputChange('businessPhone', e.target.value)}
                     />
@@ -206,8 +210,8 @@ const Register = () => {
                 </div>
 
                 <div className="flex gap-4">
-                  <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? "Submitting Application..." : "Submit Application"}
+                  <Button type="submit" disabled={loading || providerLoading} className="flex-1">
+                    {(loading || providerLoading) ? "Submitting Application..." : "Submit Application"}
                   </Button>
                   <Button type="button" variant="outline" onClick={() => navigate("/")}>
                     Cancel

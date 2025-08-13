@@ -375,7 +375,7 @@ const AdvancedSearch = () => {
                   <CardTitle className="text-lg">Quick Links</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Link to="/rentals" className="block text-sm text-teal-600 hover:text-teal-800">
+                  <Link to="/rentals?showAll=true" className="block text-sm text-teal-600 hover:text-teal-800">
                     Browse All Properties
                   </Link>
                   <Link to="/land" className="block text-sm text-teal-600 hover:text-teal-800">

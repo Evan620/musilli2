@@ -11,14 +11,14 @@ interface SearchSuggestion {
 }
 
 const mockSuggestions: SearchSuggestion[] = [
-  { id: '1', text: 'Miami Beach, FL', type: 'location', icon: <MapPin className="w-4 h-4" /> },
-  { id: '2', text: 'New York, NY', type: 'location', icon: <MapPin className="w-4 h-4" /> },
-  { id: '3', text: 'Los Angeles, CA', type: 'location', icon: <MapPin className="w-4 h-4" /> },
+  { id: '1', text: 'Nairobi, Kenya', type: 'location', icon: <MapPin className="w-4 h-4" /> },
+  { id: '2', text: 'Mombasa, Kenya', type: 'location', icon: <MapPin className="w-4 h-4" /> },
+  { id: '3', text: 'Kisumu, Kenya', type: 'location', icon: <MapPin className="w-4 h-4" /> },
   { id: '4', text: 'Luxury Villa', type: 'property', icon: <Home className="w-4 h-4" /> },
   { id: '5', text: 'Modern Apartment', type: 'property', icon: <Building2 className="w-4 h-4" /> },
-  { id: '6', text: 'Beachfront Property', type: 'feature', icon: <Home className="w-4 h-4" /> },
+  { id: '6', text: 'Garden Property', type: 'feature', icon: <Home className="w-4 h-4" /> },
   { id: '7', text: 'Pool & Spa', type: 'feature', icon: <Home className="w-4 h-4" /> },
-  { id: '8', text: 'Ocean View', type: 'feature', icon: <Home className="w-4 h-4" /> },
+  { id: '8', text: 'City View', type: 'feature', icon: <Home className="w-4 h-4" /> },
 ];
 
 interface InteractiveSearchProps {

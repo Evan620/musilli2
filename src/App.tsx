@@ -5,17 +5,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/contexts/AuthContext";
 import { PropertyProvider } from "@/contexts/PropertyContext";
+import { ProviderProvider } from "@/contexts/ProviderContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Rentals from "./pages/Rentals";
 import Land from "./pages/Land";
 import Drawings from "./pages/Drawings";
 import AdvancedSearch from "./pages/AdvancedSearch";
+import PropertyDetails from "./pages/PropertyDetails";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AddProperty from "./pages/AddProperty";
 import ProviderDashboard from "./pages/ProviderDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Partners from "./pages/Partners";
 import Header from "./components/layout/SiteHeader";
 import Footer from "./components/layout/SiteFooter";
 
@@ -26,11 +29,13 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <PropertyProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <SiteLayout />
-          </BrowserRouter>
+          <ProviderProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <SiteLayout />
+            </BrowserRouter>
+          </ProviderProvider>
         </PropertyProvider>
       </AuthProvider>
     </TooltipProvider>
@@ -48,6 +53,7 @@ const SiteLayout = () => {
           <Route path="/land" element={<Land />} />
           <Route path="/drawings" element={<Drawings />} />
           <Route path="/advanced-search" element={<AdvancedSearch />} />
+          <Route path="/property/:id" element={<PropertyDetails />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/add-property" element={
@@ -65,6 +71,7 @@ const SiteLayout = () => {
               <AdminDashboard />
             </ProtectedRoute>
           } />
+          <Route path="/partners" element={<Partners />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
