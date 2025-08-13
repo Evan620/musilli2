@@ -13,6 +13,8 @@ import { ChatWidget } from "@/components/ui/chat-widget";
 import { GeometricBackground, FloatingElements } from "@/components/ui/geometric-background";
 import { MortgageCalculator } from "@/components/ui/mortgage-calculator";
 import { InteractiveTimeline } from "@/components/ui/interactive-timeline";
+import { PlanPreviewModal } from "@/components/ui/plan-preview-modal";
+import { PlanPurchaseModal } from "@/components/ui/plan-purchase-modal";
 import { useState } from "react";
 
 const Index = () => {
@@ -81,6 +83,128 @@ const Index = () => {
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorPrice, setCalculatorPrice] = useState(500000);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [showPlanPreview, setShowPlanPreview] = useState(false);
+  const [showPlanPurchase, setShowPlanPurchase] = useState(false);
+  const [planToPurchase, setPlanToPurchase] = useState<any>(null);
+
+  // Architectural plans data
+  const architecturalPlans = [
+    {
+      id: "1",
+      title: "Minimalist 3-Bedroom Villa",
+      image: "/api/placeholder/300/200",
+      category: "Villa",
+      bedrooms: 3,
+      bathrooms: 2,
+      area: 2500,
+      areaUnit: "sqft",
+      price: 150000,
+      currency: "KSH",
+      description: "Modern minimalist design with open-plan living and large windows. Perfect for contemporary families seeking clean lines and functional spaces.",
+      features: ["Open Plan Living", "Large Windows", "Modern Kitchen", "Master Suite", "Walk-in Closet", "Covered Patio"],
+      isFeatured: true,
+      downloads: 234
+    },
+    {
+      id: "2",
+      title: "Urban Duplex Concept",
+      image: "/api/placeholder/300/200",
+      category: "Duplex",
+      bedrooms: 4,
+      bathrooms: 3,
+      area: 3200,
+      areaUnit: "sqft",
+      price: 200000,
+      currency: "KSH",
+      description: "Two-story duplex perfect for urban living with rooftop terrace. Maximizes space efficiency while maintaining comfort and style.",
+      features: ["Two Stories", "Rooftop Terrace", "Urban Design", "Efficient Layout", "Modern Finishes", "Parking Space"],
+      isFeatured: false,
+      downloads: 156
+    },
+    {
+      id: "3",
+      title: "Eco-Friendly Cottage",
+      image: "/api/placeholder/300/200",
+      category: "Cottage",
+      bedrooms: 2,
+      bathrooms: 1,
+      area: 1200,
+      areaUnit: "sqft",
+      price: 80000,
+      currency: "KSH",
+      description: "Sustainable design with solar panels and rainwater harvesting. Built with eco-friendly materials and energy-efficient systems.",
+      features: ["Solar Panels", "Rainwater Harvesting", "Eco Materials", "Energy Efficient", "Natural Lighting", "Garden Space"],
+      isFeatured: true,
+      downloads: 189
+    }
+  ];
+
+  // Handler functions for architectural plans
+  const handlePlanPreview = (plan: any) => {
+    setSelectedPlan(plan);
+    setShowPlanPreview(true);
+  };
+
+  const handlePlanPurchase = (plan: any) => {
+    setPlanToPurchase(plan);
+    setShowPlanPurchase(true);
+    setShowPlanPreview(false);
+  };
+
+  const handlePurchaseSuccess = (planId: string) => {
+    setShowPlanPurchase(false);
+    setPlanToPurchase(null);
+    // Here you could add success notification or redirect to download page
+    alert(`Successfully purchased plan! Download links sent to your email.`);
+  };
+
+  const closePlanModals = () => {
+    setShowPlanPreview(false);
+    setShowPlanPurchase(false);
+    setSelectedPlan(null);
+    setPlanToPurchase(null);
+  };
+
+  // Handler for main search functionality
+  const handleMainSearch = () => {
+    // Navigate to rentals page with search parameters
+    window.location.href = '/rentals';
+  };
+
+  // Handler for property valuation
+  const handleGetValuation = () => {
+    // Open mortgage calculator with default price
+    setCalculatorPrice(500000);
+    setShowCalculator(true);
+  };
+
+  // Handler for call action
+  const handleCall = (propertyTitle: string) => {
+    // In a real app, this would initiate a call or show contact info
+    alert(`Calling about: ${propertyTitle}\nPhone: +254 700 123 456`);
+  };
+
+  // Handler for WhatsApp action
+  const handleWhatsApp = (propertyTitle: string) => {
+    const message = encodeURIComponent(`Hi, I'm interested in: ${propertyTitle}`);
+    const whatsappUrl = `https://wa.me/254700123456?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  // Handler for navigation tabs
+  const handleForSale = () => {
+    window.location.href = '/rentals?type=sale';
+  };
+
+  const handleForRent = () => {
+    window.location.href = '/rentals?type=rent';
+  };
+
+  const handleProject = () => {
+    // Navigate to projects page or show coming soon message
+    alert('Projects section coming soon! Stay tuned for exciting new developments.');
+  };
 
   // Initialize scroll effects
   useParallaxEffect();
@@ -140,10 +264,18 @@ const Index = () => {
             <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 shadow-2xl max-w-4xl mx-auto">
               {/* Tab buttons */}
               <div className="flex mb-6">
-                <button className="text-white px-6 py-2 rounded-l-md font-medium" style={{backgroundColor: 'hsl(174, 100%, 29%)'}}>
+                <button
+                  onClick={handleForSale}
+                  className="text-white px-6 py-2 rounded-l-md font-medium hover:opacity-90 transition-opacity"
+                  style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
+                >
                   FOR SALE
                 </button>
-                <button className="text-white px-6 py-2 font-medium" style={{backgroundColor: 'hsl(158, 64%, 20%)'}}>
+                <button
+                  onClick={handleForRent}
+                  className="text-white px-6 py-2 font-medium hover:opacity-90 transition-opacity"
+                  style={{backgroundColor: 'hsl(158, 64%, 20%)'}}
+                >
                   FOR RENT
                 </button>
                 <Link to="/land">
@@ -156,7 +288,11 @@ const Index = () => {
                     PLANS
                   </button>
                 </Link>
-                <button className="text-white px-6 py-2 rounded-r-md font-medium" style={{backgroundColor: 'hsl(158, 44%, 35%)'}}>
+                <button
+                  onClick={handleProject}
+                  className="text-white px-6 py-2 rounded-r-md font-medium hover:opacity-90 transition-opacity"
+                  style={{backgroundColor: 'hsl(158, 44%, 35%)'}}
+                >
                   PROJECT
                 </button>
               </div>
@@ -192,7 +328,11 @@ const Index = () => {
                 <Link to="/advanced-search" className="font-medium underline text-teal-600 hover:text-teal-800">
                   Advanced Search
                 </Link>
-                <Button className="text-white px-8 py-3 rounded-md font-medium" style={{backgroundColor: 'hsl(174, 100%, 29%)'}}>
+                <Button
+                  onClick={handleMainSearch}
+                  className="text-white px-8 py-3 rounded-md font-medium hover:opacity-90 transition-opacity"
+                  style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
+                >
                   Search
                 </Button>
               </div>
@@ -233,6 +373,7 @@ const Index = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => handleCall("Luxury Apartment in Downtown")}
                     className="flex items-center gap-1 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
                     style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
                   >
@@ -240,6 +381,7 @@ const Index = () => {
                     Call
                   </button>
                   <button
+                    onClick={() => handleWhatsApp("Luxury Apartment in Downtown")}
                     className="flex items-center gap-1 px-4 py-2 border-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
                     style={{
                       borderColor: 'hsl(174, 100%, 29%)',
@@ -279,6 +421,7 @@ const Index = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => handleCall("Modern Villa with Pool")}
                     className="flex items-center gap-1 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
                     style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
                   >
@@ -286,6 +429,7 @@ const Index = () => {
                     Call
                   </button>
                   <button
+                    onClick={() => handleWhatsApp("Modern Villa with Pool")}
                     className="flex items-center gap-1 px-4 py-2 border-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
                     style={{
                       borderColor: 'hsl(174, 100%, 29%)',
@@ -325,6 +469,7 @@ const Index = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => handleCall("Eco-Friendly Townhouse")}
                     className="flex items-center gap-1 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
                     style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
                   >
@@ -332,6 +477,7 @@ const Index = () => {
                     Call
                   </button>
                   <button
+                    onClick={() => handleWhatsApp("Eco-Friendly Townhouse")}
                     className="flex items-center gap-1 px-4 py-2 border-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
                     style={{
                       borderColor: 'hsl(174, 100%, 29%)',
@@ -371,6 +517,7 @@ const Index = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => handleCall("Luxury Penthouse Suite")}
                     className="flex items-center gap-1 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
                     style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
                   >
@@ -378,6 +525,7 @@ const Index = () => {
                     Call
                   </button>
                   <button
+                    onClick={() => handleWhatsApp("Luxury Penthouse Suite")}
                     className="flex items-center gap-1 px-4 py-2 border-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
                     style={{
                       borderColor: 'hsl(174, 100%, 29%)',
@@ -733,183 +881,73 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {/* Featured Plan 1 */}
-            <div className="bg-gray-50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="relative mb-4">
-                <img
-                  src="/api/placeholder/300/200"
-                  alt="Minimalist Villa Plan"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <div className="absolute top-3 right-3">
-                  <span className="bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
-                    Featured
+            {architecturalPlans.map((plan) => (
+              <div key={plan.id} className="bg-gray-50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="relative mb-4">
+                  <img
+                    src={plan.image}
+                    alt={`${plan.title} Plan`}
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  {plan.isFeatured && (
+                    <div className="absolute top-3 right-3">
+                      <span className="bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                        Featured
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-xl font-bold mb-2" style={{color: 'hsl(158, 64%, 20%)'}}>{plan.title}</h3>
+                <p className="text-gray-600 text-sm mb-3">
+                  {plan.description.split('.')[0]}.
+                </p>
+                <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                  <div className="flex items-center">
+                    <Bed className="w-4 h-4 mr-1" />
+                    {plan.bedrooms} Beds
+                  </div>
+                  <div className="flex items-center">
+                    <Bath className="w-4 h-4 mr-1" />
+                    {plan.bathrooms} Baths
+                  </div>
+                  <div className="flex items-center">
+                    <Ruler className="w-4 h-4 mr-1" />
+                    {plan.area.toLocaleString()} {plan.areaUnit}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-lg font-bold" style={{color: 'hsl(174, 100%, 29%)'}}>
+                    {plan.currency} {plan.price.toLocaleString()}
                   </span>
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Download className="w-4 h-4 mr-1" />
+                    {plan.downloads} downloads
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handlePlanPreview(plan)}
+                    className="flex-1 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                    style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
+                  >
+                    Preview
+                  </Button>
+                  <Button
+                    onClick={() => handlePlanPurchase(plan)}
+                    variant="outline"
+                    className="flex-1 border-2 text-sm font-medium rounded-lg hover:bg-opacity-10 transition-colors"
+                    style={{
+                      borderColor: 'hsl(174, 100%, 29%)',
+                      color: 'hsl(174, 100%, 29%)'
+                    }}
+                  >
+                    Buy Now
+                  </Button>
                 </div>
               </div>
-              <h3 className="text-xl font-bold mb-2" style={{color: 'hsl(158, 64%, 20%)'}}>Minimalist 3-Bedroom Villa</h3>
-              <p className="text-gray-600 text-sm mb-3">
-                Modern minimalist design with open-plan living and large windows
-              </p>
-              <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                <div className="flex items-center">
-                  <Bed className="w-4 h-4 mr-1" />
-                  3 Beds
-                </div>
-                <div className="flex items-center">
-                  <Bath className="w-4 h-4 mr-1" />
-                  2 Baths
-                </div>
-                <div className="flex items-center">
-                  <Ruler className="w-4 h-4 mr-1" />
-                  2,500 sqft
-                </div>
-              </div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-lg font-bold" style={{color: 'hsl(174, 100%, 29%)'}}>
-                  KSH 150,000
-                </span>
-                <div className="flex items-center text-sm text-gray-500">
-                  <Download className="w-4 h-4 mr-1" />
-                  234 downloads
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1 text-white text-sm font-medium rounded-lg"
-                  style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
-                >
-                  Preview
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 border-2 text-sm font-medium rounded-lg"
-                  style={{
-                    borderColor: 'hsl(174, 100%, 29%)',
-                    color: 'hsl(174, 100%, 29%)'
-                  }}
-                >
-                  Buy Now
-                </Button>
-              </div>
-            </div>
+            ))}
 
-            {/* Featured Plan 2 */}
-            <div className="bg-gray-50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="relative mb-4">
-                <img
-                  src="/api/placeholder/300/200"
-                  alt="Urban Duplex Plan"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-              </div>
-              <h3 className="text-xl font-bold mb-2" style={{color: 'hsl(158, 64%, 20%)'}}>Urban Duplex Concept</h3>
-              <p className="text-gray-600 text-sm mb-3">
-                Two-story duplex perfect for urban living with rooftop terrace
-              </p>
-              <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                <div className="flex items-center">
-                  <Bed className="w-4 h-4 mr-1" />
-                  4 Beds
-                </div>
-                <div className="flex items-center">
-                  <Bath className="w-4 h-4 mr-1" />
-                  3 Baths
-                </div>
-                <div className="flex items-center">
-                  <Ruler className="w-4 h-4 mr-1" />
-                  3,200 sqft
-                </div>
-              </div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-lg font-bold" style={{color: 'hsl(174, 100%, 29%)'}}>
-                  KSH 200,000
-                </span>
-                <div className="flex items-center text-sm text-gray-500">
-                  <Download className="w-4 h-4 mr-1" />
-                  156 downloads
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1 text-white text-sm font-medium rounded-lg"
-                  style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
-                >
-                  Preview
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 border-2 text-sm font-medium rounded-lg"
-                  style={{
-                    borderColor: 'hsl(174, 100%, 29%)',
-                    color: 'hsl(174, 100%, 29%)'
-                  }}
-                >
-                  Buy Now
-                </Button>
-              </div>
-            </div>
 
-            {/* Featured Plan 3 */}
-            <div className="bg-gray-50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="relative mb-4">
-                <img
-                  src="/api/placeholder/300/200"
-                  alt="Eco-Friendly Cottage Plan"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <div className="absolute top-3 right-3">
-                  <span className="bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
-                    Eco-Friendly
-                  </span>
-                </div>
-              </div>
-              <h3 className="text-xl font-bold mb-2" style={{color: 'hsl(158, 64%, 20%)'}}>Eco-Friendly Cottage</h3>
-              <p className="text-gray-600 text-sm mb-3">
-                Sustainable design with solar panels and rainwater harvesting
-              </p>
-              <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                <div className="flex items-center">
-                  <Bed className="w-4 h-4 mr-1" />
-                  2 Beds
-                </div>
-                <div className="flex items-center">
-                  <Bath className="w-4 h-4 mr-1" />
-                  1 Bath
-                </div>
-                <div className="flex items-center">
-                  <Ruler className="w-4 h-4 mr-1" />
-                  1,200 sqft
-                </div>
-              </div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-lg font-bold" style={{color: 'hsl(174, 100%, 29%)'}}>
-                  KSH 80,000
-                </span>
-                <div className="flex items-center text-sm text-gray-500">
-                  <Download className="w-4 h-4 mr-1" />
-                  189 downloads
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1 text-white text-sm font-medium rounded-lg"
-                  style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
-                >
-                  Preview
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 border-2 text-sm font-medium rounded-lg"
-                  style={{
-                    borderColor: 'hsl(174, 100%, 29%)',
-                    color: 'hsl(174, 100%, 29%)'
-                  }}
-                >
-                  Buy Now
-                </Button>
-              </div>
-            </div>
           </div>
 
           {/* Features Section */}
@@ -986,6 +1024,7 @@ const Index = () => {
                   Thinking of selling your home? Knowing its current price is a good place to start. Get an accurate, independent valuation and a detailed report here.
                 </p>
                 <button
+                  onClick={handleGetValuation}
                   className="px-8 py-3 rounded-lg font-semibold text-black transition-all duration-200 hover:scale-105 hover:shadow-lg"
                   style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
                 >
@@ -1697,6 +1736,24 @@ const Index = () => {
         onClose={() => setShowCalculator(false)}
         initialPrice={calculatorPrice}
       />
+
+      {/* Plan Preview Modal */}
+      {showPlanPreview && selectedPlan && (
+        <PlanPreviewModal
+          plan={selectedPlan}
+          onClose={closePlanModals}
+          onPurchase={handlePlanPurchase}
+        />
+      )}
+
+      {/* Plan Purchase Modal */}
+      {showPlanPurchase && planToPurchase && (
+        <PlanPurchaseModal
+          plan={planToPurchase}
+          onClose={closePlanModals}
+          onSuccess={handlePurchaseSuccess}
+        />
+      )}
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
     </main>

@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import Rentals from "./pages/Rentals";
 import Land from "./pages/Land";
 import Drawings from "./pages/Drawings";
+import AdvancedSearch from "./pages/AdvancedSearch";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AddProperty from "./pages/AddProperty";
@@ -46,6 +47,7 @@ const SiteLayout = () => {
           <Route path="/rentals" element={<Rentals />} />
           <Route path="/land" element={<Land />} />
           <Route path="/drawings" element={<Drawings />} />
+          <Route path="/advanced-search" element={<AdvancedSearch />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/add-property" element={
