@@ -138,7 +138,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <main className="container mx-auto py-10">
+    <main className="container mx-auto py-6 sm:py-10 px-4 sm:px-6">
       <header className="mb-8">
         <h1 className="text-3xl font-semibold text-gradient">Admin Dashboard</h1>
         <p className="text-muted-foreground">Monitor platform activity, manage users, and oversee all operations.</p>
@@ -201,10 +201,10 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <Tabs defaultValue="properties" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="properties">Property Approvals</TabsTrigger>
-          <TabsTrigger value="providers">Provider Management</TabsTrigger>
-          <TabsTrigger value="analytics">Platform Analytics</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto">
+          <TabsTrigger value="properties" className="text-xs sm:text-sm">Property Approvals</TabsTrigger>
+          <TabsTrigger value="providers" className="text-xs sm:text-sm">Provider Management</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm">Platform Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="properties" className="space-y-6">
@@ -225,17 +225,18 @@ const AdminDashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {pendingProperties.map((property) => (
-                    <div key={property.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
+                    <div key={property.id} className="p-4 border rounded-lg space-y-4">
+                      {/* Property Info */}
+                      <div className="flex items-start space-x-4">
                         <img
                           src={property.images[0]?.url || '/placeholder.svg'}
                           alt={property.title}
-                          className="w-16 h-16 object-cover rounded-md"
+                          className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md flex-shrink-0"
                         />
-                        <div>
-                          <h3 className="font-semibold">{property.title}</h3>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm sm:text-base truncate">{property.title}</h3>
                           <p className="text-sm text-muted-foreground">{property.location.city}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
                             {getStatusBadge(property.status)}
                             <span className="text-sm font-medium">
                               {property.currency} {property.price.toLocaleString()}
@@ -244,21 +245,23 @@ const AdminDashboard = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
+                      {/* Action Buttons */}
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                         <Button
                           size="sm"
                           onClick={() => handleApproveProperty(property.id)}
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
                         >
-                          <CheckCircle className="w-4 h-4 mr-1" />
+                          <CheckCircle className="w-4 h-4 mr-2" />
                           Approve
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => handleRejectProperty(property.id)}
+                          className="flex-1 sm:flex-none"
                         >
-                          <XCircle className="w-4 h-4 mr-1" />
+                          <XCircle className="w-4 h-4 mr-2" />
                           Reject
                         </Button>
                       </div>
@@ -276,25 +279,24 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="space-y-4">
                 {properties.slice(0, 5).map((property) => (
-                  <div key={property.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
+                  <div key={property.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start space-x-3">
                       <img
                         src={property.images[0]?.url || '/placeholder.svg'}
                         alt={property.title}
-                        className="w-12 h-12 object-cover rounded-md"
+                        className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-md flex-shrink-0"
                       />
-                      <div>
-                        <h3 className="font-medium">{property.title}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-sm sm:text-base truncate">{property.title}</h3>
                         <p className="text-sm text-muted-foreground">{property.location.city}</p>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center space-x-4">
-                      {getStatusBadge(property.status)}
-                      <div className="text-right text-sm">
-                        <div className="flex items-center text-muted-foreground">
-                          <Eye className="w-4 h-4 mr-1" />
-                          {property.views}
+                        {/* Mobile-friendly status and views */}
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          {getStatusBadge(property.status)}
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Eye className="w-4 h-4 mr-1" />
+                            {property.views}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -323,13 +325,14 @@ const AdminDashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {pendingProvidersList.map((provider) => (
-                    <div key={provider.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={provider.id} className="p-4 border rounded-lg space-y-4">
+                      {/* Provider Info */}
                       <div>
-                        <h3 className="font-semibold">{provider.businessName}</h3>
+                        <h3 className="font-semibold text-sm sm:text-base">{provider.businessName}</h3>
                         <p className="text-sm text-muted-foreground">{provider.name} - {provider.email}</p>
                         <p className="text-xs text-muted-foreground">Applied: {provider.joinedDate}</p>
                         <p className="text-xs text-muted-foreground">City: {provider.city}</p>
-                        <div className="flex gap-1 mt-1">
+                        <div className="flex flex-wrap gap-1 mt-2">
                           {provider.specialties.map((specialty, index) => (
                             <Badge key={index} variant="secondary" className="text-xs">
                               {specialty}
@@ -338,14 +341,15 @@ const AdminDashboard = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
+                      {/* Action Buttons */}
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                         <Button
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
                           onClick={() => handleApproveProvider(provider.id)}
                           disabled={providersLoading}
                         >
-                          <CheckCircle className="w-4 h-4 mr-1" />
+                          <CheckCircle className="w-4 h-4 mr-2" />
                           Approve
                         </Button>
                         <Button
@@ -353,8 +357,9 @@ const AdminDashboard = () => {
                           variant="destructive"
                           onClick={() => handleRejectProvider(provider.id)}
                           disabled={providersLoading}
+                          className="flex-1 sm:flex-none"
                         >
-                          <XCircle className="w-4 h-4 mr-1" />
+                          <XCircle className="w-4 h-4 mr-2" />
                           Reject
                         </Button>
                       </div>

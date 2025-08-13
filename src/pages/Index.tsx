@@ -276,34 +276,34 @@ const Index = () => {
             {/* Search Interface */}
             <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 shadow-2xl max-w-4xl mx-auto">
               {/* Tab buttons */}
-              <div className="flex mb-6">
+              <div className="flex flex-wrap sm:flex-nowrap mb-6 gap-1 sm:gap-0 rounded-md overflow-hidden">
                 <button
                   onClick={handleForSale}
-                  className="text-white px-6 py-2 rounded-l-md font-medium hover:opacity-90 transition-opacity"
+                  className="text-white px-3 sm:px-6 py-2 text-sm sm:text-base rounded-l-md font-medium hover:opacity-90 transition-opacity flex-1 sm:flex-none"
                   style={{backgroundColor: 'hsl(174, 100%, 29%)'}}
                 >
                   FOR SALE
                 </button>
                 <button
                   onClick={handleForRent}
-                  className="text-white px-6 py-2 font-medium hover:opacity-90 transition-opacity"
+                  className="text-white px-3 sm:px-6 py-2 text-sm sm:text-base font-medium hover:opacity-90 transition-opacity flex-1 sm:flex-none"
                   style={{backgroundColor: 'hsl(158, 64%, 20%)'}}
                 >
                   FOR RENT
                 </button>
-                <Link to="/land">
-                  <button className="text-white px-6 py-2 font-medium hover:opacity-90 transition-opacity" style={{backgroundColor: 'hsl(120, 60%, 40%)'}}>
+                <Link to="/land" className="flex-1 sm:flex-none">
+                  <button className="text-white px-3 sm:px-6 py-2 text-sm sm:text-base font-medium hover:opacity-90 transition-opacity w-full" style={{backgroundColor: 'hsl(120, 60%, 40%)'}}>
                     LAND
                   </button>
                 </Link>
-                <Link to="/drawings">
-                  <button className="text-white px-6 py-2 font-medium hover:opacity-90 transition-opacity" style={{backgroundColor: 'hsl(280, 60%, 50%)'}}>
+                <Link to="/drawings" className="flex-1 sm:flex-none">
+                  <button className="text-white px-3 sm:px-6 py-2 text-sm sm:text-base font-medium hover:opacity-90 transition-opacity w-full" style={{backgroundColor: 'hsl(280, 60%, 50%)'}}>
                     PLANS
                   </button>
                 </Link>
                 <button
                   onClick={handleProject}
-                  className="text-white px-6 py-2 rounded-r-md font-medium hover:opacity-90 transition-opacity"
+                  className="text-white px-3 sm:px-6 py-2 text-sm sm:text-base rounded-r-md font-medium hover:opacity-90 transition-opacity flex-1 sm:flex-none"
                   style={{backgroundColor: 'hsl(158, 44%, 35%)'}}
                 >
                   PROJECT

@@ -128,6 +128,11 @@ All colors MUST be HSL.
     color: white;
     font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     min-height: 100vh;
+    /* Mobile optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -146,8 +151,45 @@ All colors MUST be HSL.
   --shadow-brutal: 8px 8px 0 hsl(var(--background) / 0.5), 0 0 0 2px hsl(var(--border));
 }
 
-/* 3D Animation Utilities */
+/* Mobile-specific improvements */
 @layer utilities {
+  /* Better touch targets for mobile */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Mobile-friendly spacing */
+  .mobile-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Mobile-optimized text sizes */
+  .mobile-text {
+    @apply text-sm sm:text-base;
+  }
+
+  /* Mobile-friendly buttons */
+  .mobile-button {
+    @apply px-4 py-3 text-base font-medium touch-target;
+  }
+
+  /* Prevent horizontal scroll on mobile */
+  .mobile-container {
+    @apply max-w-full overflow-x-hidden;
+  }
+
+  /* Mobile-friendly cards */
+  .mobile-card {
+    @apply rounded-lg sm:rounded-xl;
+  }
+
+  /* Better mobile navigation */
+  .mobile-nav-item {
+    @apply flex items-center gap-3 px-4 py-3 text-base font-medium touch-target;
+  }
+
+/* 3D Animation Utilities */
   .transform-3d {
     transform-style: preserve-3d;
   }

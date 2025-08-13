@@ -91,18 +91,20 @@ const ProviderDashboard = () => {
   }
 
   return (
-    <main className="container mx-auto py-10">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-gradient">Provider Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user.name}! Manage your listings and track performance.</p>
+    <main className="container mx-auto py-6 sm:py-10 px-4 sm:px-6">
+      <header className="mb-8 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-gradient">Provider Dashboard</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Welcome back, {user.name}! Manage your listings and track performance.</p>
+          </div>
+          <Link to="/add-property">
+            <Button className="shadow-lg hover:shadow-xl transition-shadow w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Property
+            </Button>
+          </Link>
         </div>
-        <Link to="/add-property">
-          <Button className="shadow-lg hover:shadow-xl transition-shadow">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Property
-          </Button>
-        </Link>
       </header>
 
       {/* Stats Overview */}
@@ -187,57 +189,62 @@ const ProviderDashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {providerProperties.map((property) => (
-                    <div key={property.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
+                    <div key={property.id} className="p-4 border rounded-lg space-y-4">
+                      {/* Property Info */}
+                      <div className="flex items-start space-x-4">
                         <img
                           src={property.images[0]?.url || '/placeholder.svg'}
                           alt={property.title}
-                          className="w-16 h-16 object-cover rounded-md"
+                          className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md flex-shrink-0"
                         />
-                        <div>
-                          <h3 className="font-semibold">{property.title}</h3>
-                          <p className="text-sm text-muted-foreground">{property.location.city}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {getStatusBadge(property.status)}
-                            <span className="text-sm font-medium">
-                              {property.currency} {property.price.toLocaleString()}
-                            </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm sm:text-base truncate">{property.title}</h3>
+                              <p className="text-sm text-muted-foreground">{property.location.city}</p>
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                {getStatusBadge(property.status)}
+                                <span className="text-sm font-medium">
+                                  {property.currency} {property.price.toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Mobile-friendly dropdown */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="flex-shrink-0">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteProperty(property.id)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right text-sm">
-                          <div className="flex items-center text-muted-foreground">
-                            <Eye className="w-4 h-4 mr-1" />
-                            {property.views}
-                          </div>
-                          <div className="flex items-center text-muted-foreground">
-                            <MessageSquare className="w-4 h-4 mr-1" />
-                            {property.inquiries}
-                          </div>
+                      {/* Stats */}
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center">
+                          <Eye className="w-4 h-4 mr-1" />
+                          {property.views} views
                         </div>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteProperty(property.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center">
+                          <MessageSquare className="w-4 h-4 mr-1" />
+                          {property.inquiries} inquiries
+                        </div>
                       </div>
                     </div>
                   ))}

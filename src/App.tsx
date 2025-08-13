@@ -46,7 +46,7 @@ const SiteLayout = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <div className="flex-1">
+      <div className="flex-1 pb-16 lg:pb-0">{/* Add bottom padding for mobile navigation */}
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/rentals" element={<Rentals />} />
