@@ -38,6 +38,9 @@ export interface ProviderRegistrationData {
   businessEmail: string;
   businessPhone: string;
   city: string;
+  password: string;
+  confirmPassword: string;
+  profilePhoto?: File;
 }
 
 // Context type
@@ -52,6 +55,17 @@ interface ProviderContextType {
   getProvider: (providerId: string) => Provider | undefined;
   isLoading: boolean;
 }
+
+// User credentials storage for providers (in a real app, this would be in a secure backend)
+interface ProviderCredentials {
+  id: string;
+  email: string;
+  password: string;
+  isApproved: boolean;
+}
+
+// Store provider credentials separately (simulating backend user management)
+let providerCredentials: ProviderCredentials[] = [];
 
 // Create context
 const ProviderContext = createContext<ProviderContextType | undefined>(undefined);
@@ -314,9 +328,11 @@ export const ProviderProvider: React.FC<ProviderProviderProps> = ({ children }) 
     setIsLoading(true);
 
     try {
-      // Check if email already exists
+      // Check if email already exists in providers or credentials
       const existingProvider = providers.find(p => p.email === data.email || p.businessEmail === data.businessEmail);
-      if (existingProvider) {
+      const existingCredentials = providerCredentials.find(c => c.email === data.email);
+
+      if (existingProvider || existingCredentials) {
         setIsLoading(false);
         return { success: false, error: 'A provider with this email already exists' };
       }
@@ -324,16 +340,35 @@ export const ProviderProvider: React.FC<ProviderProviderProps> = ({ children }) 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
 
+      const providerId = `provider-${Date.now()}`;
+
+      // Store provider credentials (password will be used for login after approval)
+      const newCredentials: ProviderCredentials = {
+        id: providerId,
+        email: data.email,
+        password: data.password, // In a real app, this would be hashed
+        isApproved: false
+      };
+      providerCredentials.push(newCredentials);
+
+      // Handle profile photo upload
+      let logoUrl = '/api/placeholder/80/80';
+      if (data.profilePhoto) {
+        // In a real app, you would upload to a cloud storage service
+        // For now, we'll create a local URL for the uploaded file
+        logoUrl = URL.createObjectURL(data.profilePhoto);
+      }
+
       // Create new provider with pending status
       const newProvider: Provider = {
-        id: `provider-${Date.now()}`,
+        id: providerId,
         businessName: data.businessName,
         name: data.name,
         email: data.email,
         phone: data.phone,
         city: data.city,
         state: `${data.city} County`, // Simple state mapping
-        logo: '/api/placeholder/80/80',
+        logo: logoUrl,
         website: `www.${data.businessName.toLowerCase().replace(/\s+/g, '')}.com`,
         description: `Professional real estate services in ${data.city}.`,
         totalListings: 0,
@@ -360,13 +395,14 @@ export const ProviderProvider: React.FC<ProviderProviderProps> = ({ children }) 
 
   const approveProvider = async (providerId: string, adminId: string): Promise<boolean> => {
     setIsLoading(true);
-    
+
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setProviders(prev => prev.map(provider => 
-        provider.id === providerId 
+
+      // Update provider status
+      setProviders(prev => prev.map(provider =>
+        provider.id === providerId
           ? {
               ...provider,
               isApproved: true,
@@ -376,7 +412,14 @@ export const ProviderProvider: React.FC<ProviderProviderProps> = ({ children }) 
             }
           : provider
       ));
-      
+
+      // Enable login credentials for the approved provider
+      providerCredentials = providerCredentials.map(cred =>
+        cred.id === providerId
+          ? { ...cred, isApproved: true }
+          : cred
+      );
+
       setIsLoading(false);
       return true;
     } catch (error) {
@@ -436,6 +479,19 @@ export const ProviderProvider: React.FC<ProviderProviderProps> = ({ children }) 
       {children}
     </ProviderContext.Provider>
   );
+};
+
+// Export function to get provider credentials for authentication
+export const getProviderCredentials = (email: string, password: string): ProviderCredentials | null => {
+  const credentials = providerCredentials.find(
+    cred => cred.email === email && cred.password === password && cred.isApproved
+  );
+  return credentials || null;
+};
+
+// Export function to check if provider exists (for registration validation)
+export const checkProviderExists = (email: string): boolean => {
+  return providerCredentials.some(cred => cred.email === email);
 };
 
 export const useProviders = (): ProviderContextType => {

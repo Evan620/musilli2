@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType, UserRole } from '@/types';
+import { getProviderCredentials } from '@/contexts/ProviderContext';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -69,12 +70,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
+    // First check mock users (admin, existing users)
     const foundUser = mockUsers.find(u => u.email === email && u.password === password);
 
     if (foundUser && foundUser.status === 'approved') {
       const { password: _, ...userWithoutPassword } = foundUser;
       setUser(userWithoutPassword);
       localStorage.setItem('musilli_user', JSON.stringify(userWithoutPassword));
+      setIsLoading(false);
+      return true;
+    }
+
+    // Then check provider credentials
+    const providerCredentials = getProviderCredentials(email, password);
+    if (providerCredentials) {
+      // Create user object for approved provider
+      const providerUser: User = {
+        id: providerCredentials.id,
+        email: providerCredentials.email,
+        name: 'Provider User', // This would come from provider data in a real app
+        role: 'provider',
+        status: 'approved',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      setUser(providerUser);
+      localStorage.setItem('musilli_user', JSON.stringify(providerUser));
       setIsLoading(false);
       return true;
     }

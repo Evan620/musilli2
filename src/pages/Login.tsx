@@ -177,12 +177,18 @@ const Login = () => {
                 </Link>
               </div>
 
-              <div className="border-t pt-4">
+              <div className="border-t pt-4 space-y-3">
                 <div className="text-xs text-muted-foreground space-y-1">
                   <p><strong>Demo Accounts:</strong></p>
                   <p>Admin: admin@musillihomes.com / admin123</p>
                   <p>Provider: provider@example.com / provider123</p>
                   <p>User: user@example.com / user123</p>
+                </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-800">
+                    <strong>New Providers:</strong> After registering and getting admin approval, use your registration email and password to login here.
+                  </p>
                 </div>
               </div>
             </div>

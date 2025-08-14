@@ -158,6 +158,8 @@ export interface ProviderRegistrationData {
   businessEmail: string;
   businessPhone: string;
   city: string;
+  password: string;
+  confirmPassword: string;
 }
 
 export interface UserLoginData {
@@ -187,6 +189,7 @@ export interface PropertySearchFilters {
   type?: PropertyType;
   category?: PropertyCategory;
   city?: string;
+  providerId?: string;
   minPrice?: number;
   maxPrice?: number;
   bedrooms?: number;

@@ -621,15 +621,18 @@ export const PropertyProvider: React.FC<PropertyProviderProps> = ({ children }) 
         return false;
       }
 
+      // Provider filter (for filtering by specific provider)
+      if (filters.providerId && property.providerId !== filters.providerId) return false;
+
       // Text search
       if (filters.query) {
         const query = filters.query.toLowerCase();
-        const matchesQuery = 
+        const matchesQuery =
           property.title.toLowerCase().includes(query) ||
           property.description.toLowerCase().includes(query) ||
           property.location.city.toLowerCase().includes(query) ||
           property.location.address.toLowerCase().includes(query);
-        
+
         if (!matchesQuery) return false;
       }
 
