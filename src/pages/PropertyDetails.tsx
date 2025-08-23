@@ -211,11 +211,11 @@ const PropertyDetails = () => {
                 </div>
 
                 {/* Amenities */}
-                {property.amenities && property.amenities.length > 0 && (
+                {property.features.amenities && property.features.amenities.length > 0 && (
                   <div>
                     <h3 className="text-xl font-semibold mb-3">Amenities</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {property.amenities.map((amenity, index) => (
+                      {property.features.amenities.map((amenity, index) => (
                         <div key={index} className="flex items-center gap-2 text-gray-700">
                           <CheckCircle className="w-4 h-4 text-green-500" />
                           {amenity}
@@ -224,6 +224,43 @@ const PropertyDetails = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Utilities */}
+                {property.features.utilities && property.features.utilities.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-xl font-semibold mb-3">Utilities</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {property.features.utilities.map((utility, index) => (
+                        <div key={index} className="flex items-center gap-2 text-gray-700">
+                          <CheckCircle className="w-4 h-4 text-blue-500" />
+                          {utility}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Features */}
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {property.features.furnished && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                      <CheckCircle className="w-4 h-4" />
+                      Furnished
+                    </div>
+                  )}
+                  {property.features.petFriendly && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                      <CheckCircle className="w-4 h-4" />
+                      Pet Friendly
+                    </div>
+                  )}
+                  {property.features.parking && property.features.parking > 0 && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
+                      <Car className="w-4 h-4" />
+                      {property.features.parking} Parking Space{property.features.parking > 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -259,28 +296,28 @@ const PropertyDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Property Stats */}
+            {/* Property Summary */}
             <Card>
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Property Details</h3>
+                <h3 className="text-xl font-semibold mb-4">Property Summary</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Property ID</span>
-                    <span className="font-medium">{property.id}</span>
+                    <span className="text-gray-600">Property Type</span>
+                    <span className="font-medium capitalize">{property.type}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Type</span>
-                    <span className="font-medium">{property.type}</span>
+                    <span className="text-gray-600">Area</span>
+                    <span className="font-medium">{property.features.area} {property.features.areaUnit}</span>
                   </div>
+                  {property.features.parking && property.features.parking > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Parking</span>
+                      <span className="font-medium">{property.features.parking} space{property.features.parking > 1 ? 's' : ''}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Status</span>
-                    <Badge variant="secondary">{property.status}</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Listed</span>
-                    <span className="font-medium">
-                      {new Date(property.createdAt).toLocaleDateString()}
-                    </span>
+                    <span className="text-gray-600">Available</span>
+                    <span className="font-medium text-green-600">Now</span>
                   </div>
                 </div>
               </CardContent>

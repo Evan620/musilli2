@@ -6,9 +6,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/contexts/AuthContext";
 import { PropertyProvider } from "@/contexts/PropertyContext";
 import { ProviderProvider } from "@/contexts/ProviderContext";
+import { AdminProvider } from "@/contexts/AdminContext";
+
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Rentals from "./pages/Rentals";
+import PropertiesForSale from "./pages/PropertiesForSale";
 import Land from "./pages/Land";
 import Drawings from "./pages/Drawings";
 import AdvancedSearch from "./pages/AdvancedSearch";
@@ -19,8 +22,13 @@ import AddProperty from "./pages/AddProperty";
 import ProviderDashboard from "./pages/ProviderDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Partners from "./pages/Partners";
+import AuthCallback from "./pages/AuthCallback";
+import NetworkTest from "./pages/NetworkTest";
+import DebugAuth from "./pages/DebugAuth";
 import Header from "./components/layout/SiteHeader";
 import Footer from "./components/layout/SiteFooter";
+import { DashboardRedirect } from "./components/DashboardRedirect";
+import { SessionErrorBanner } from "./components/SessionErrorBanner";
 
 const queryClient = new QueryClient();
 
@@ -30,11 +38,18 @@ const App = () => (
       <AuthProvider>
         <PropertyProvider>
           <ProviderProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <SiteLayout />
-            </BrowserRouter>
+            <AdminProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true
+                }}
+              >
+                <SiteLayout />
+              </BrowserRouter>
+            </AdminProvider>
           </ProviderProvider>
         </PropertyProvider>
       </AuthProvider>
@@ -46,21 +61,25 @@ const SiteLayout = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      <SessionErrorBanner />
       <div className="flex-1 pb-16 lg:pb-0">{/* Add bottom padding for mobile navigation */}
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/rentals" element={<Rentals />} />
+          <Route path="/properties-for-sale" element={<PropertiesForSale />} />
           <Route path="/land" element={<Land />} />
           <Route path="/drawings" element={<Drawings />} />
           <Route path="/advanced-search" element={<AdvancedSearch />} />
           <Route path="/property/:id" element={<PropertyDetails />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/add-property" element={
             <ProtectedRoute requiredRole="provider">
               <AddProperty />
             </ProtectedRoute>
           } />
+          <Route path="/dashboard" element={<DashboardRedirect />} />
           <Route path="/dashboard/provider" element={
             <ProtectedRoute requiredRole="provider">
               <ProviderDashboard />
@@ -72,6 +91,8 @@ const SiteLayout = () => {
             </ProtectedRoute>
           } />
           <Route path="/partners" element={<Partners />} />
+          <Route path="/network-test" element={<NetworkTest />} />
+          <Route path="/debug-auth" element={<DebugAuth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

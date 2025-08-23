@@ -25,7 +25,8 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 const SiteHeader = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
+  const isAuthenticated = !!user;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -69,46 +70,25 @@ const SiteHeader = () => {
                 For Sale
               </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <div className="grid gap-3 p-6 md:w-[500px] lg:w-[600px] lg:grid-cols-2 bg-background/95 backdrop-blur-sm border shadow-lg z-[120]" style={{zIndex: 9999, position: 'relative'}}>
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Properties</h4>
-                    <Link to="/rentals?category=rent" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                      <div className="text-sm font-medium leading-none flex items-center gap-2">
-                        <Home className="w-4 h-4" />
-                        Houses for Rent
-                      </div>
-                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        Long-term rental homes and apartments
-                      </p>
-                    </Link>
-                    <Link to="/rentals?category=short-term-rental" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                      <div className="text-sm font-medium leading-none flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        Short-term Stays
-                      </div>
-                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        AirBnB and vacation rentals
-                      </p>
-                    </Link>
-                    <Link to="/rentals?type=apartment" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                      <div className="text-sm font-medium leading-none flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        Apartments
-                      </div>
-                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        Modern apartments in prime locations
-                      </p>
-                    </Link>
-                  </div>
+                <div className="grid gap-3 p-6 md:w-[450px] bg-background/95 backdrop-blur-sm border shadow-lg z-[120]" style={{zIndex: 9999, position: 'relative'}}>
                   <div className="space-y-3">
                     <h4 className="text-sm font-semibold text-foreground mb-3">For Sale</h4>
-                    <Link to="/rentals?category=sale&type=house" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                    <Link to="/properties-for-sale?type=house" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
                       <div className="text-sm font-medium leading-none flex items-center gap-2">
                         <Home className="w-4 h-4" />
                         Houses for Sale
                       </div>
                       <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                         Family homes and luxury properties
+                      </p>
+                    </Link>
+                    <Link to="/properties-for-sale?type=apartment" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                      <div className="text-sm font-medium leading-none flex items-center gap-2">
+                        <Building2 className="w-4 h-4" />
+                        Apartments for Sale
+                      </div>
+                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                        Modern apartments in prime locations
                       </p>
                     </Link>
                     <Link to="/land" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
@@ -129,7 +109,7 @@ const SiteHeader = () => {
                         Professional house plans & blueprints
                       </p>
                     </Link>
-                    <Link to="/rentals?category=sale&type=commercial" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                    <Link to="/properties-for-sale?type=commercial" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
                       <div className="text-sm font-medium leading-none flex items-center gap-2">
                         <Building2 className="w-4 h-4" />
                         Commercial Properties
@@ -138,13 +118,13 @@ const SiteHeader = () => {
                         Office buildings and retail spaces
                       </p>
                     </Link>
-                    <Link to="/rentals?showAll=true" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                    <Link to="/properties-for-sale" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
                       <div className="text-sm font-medium leading-none flex items-center gap-2">
                         <Search className="w-4 h-4" />
-                        Browse All Properties
+                        Browse All Properties for Sale
                       </div>
                       <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        View all available properties
+                        View all available properties for sale
                       </p>
                     </Link>
                   </div>
@@ -180,10 +160,19 @@ const SiteHeader = () => {
                     <Link to="/rentals?type=apartment" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
                       <div className="text-sm font-medium leading-none flex items-center gap-2">
                         <Building2 className="w-4 h-4" />
-                        Apartments
+                        Apartments for Rent
                       </div>
                       <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                         Modern apartments in prime locations
+                      </p>
+                    </Link>
+                    <Link to="/rentals" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                      <div className="text-sm font-medium leading-none flex items-center gap-2">
+                        <Search className="w-4 h-4" />
+                        Browse All Rentals
+                      </div>
+                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                        View all available rental properties
                       </p>
                     </Link>
                   </div>
@@ -361,17 +350,9 @@ const SiteHeader = () => {
               <Link to="/login" className="text-gray-700 hover:text-red-600 px-3 py-2 text-sm font-medium">
                 Sign In
               </Link>
-              <Link to="/login" className="text-gray-700 hover:text-red-600 px-3 py-2 text-sm font-medium">
-                Log In
-              </Link>
-              <Link to="/add-property">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-medium">
-                  Request a property
-                </Button>
-              </Link>
               <Link to="/register">
                 <Button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm font-medium">
-                  Create Listing
+                  Register
                 </Button>
               </Link>
             </div>
@@ -438,7 +419,7 @@ const SiteHeader = () => {
                 <h3 className="text-lg font-semibold text-gray-900 px-3">For Sale</h3>
                 <div className="space-y-1">
                   <Link
-                    to="/rentals?category=sale&type=house"
+                    to="/properties-for-sale?type=house"
                     className="flex items-center gap-3 px-3 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
                     onClick={closeMobileMenu}
                   >
@@ -449,13 +430,13 @@ const SiteHeader = () => {
                     </div>
                   </Link>
                   <Link
-                    to="/rentals?type=apartment"
+                    to="/properties-for-sale?type=apartment"
                     className="flex items-center gap-3 px-3 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
                     onClick={closeMobileMenu}
                   >
                     <Building2 className="w-5 h-5" />
                     <div>
-                      <div className="font-medium">Apartments</div>
+                      <div className="font-medium">Apartments for Sale</div>
                       <div className="text-sm text-gray-500">Modern apartments in prime locations</div>
                     </div>
                   </Link>
@@ -471,7 +452,7 @@ const SiteHeader = () => {
                     </div>
                   </Link>
                   <Link
-                    to="/rentals?category=sale&type=commercial"
+                    to="/properties-for-sale?type=commercial"
                     className="flex items-center gap-3 px-3 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
                     onClick={closeMobileMenu}
                   >
@@ -482,14 +463,14 @@ const SiteHeader = () => {
                     </div>
                   </Link>
                   <Link
-                    to="/rentals?showAll=true"
+                    to="/properties-for-sale"
                     className="flex items-center gap-3 px-3 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
                     onClick={closeMobileMenu}
                   >
                     <Search className="w-5 h-5" />
                     <div>
-                      <div className="font-medium">Browse All Properties</div>
-                      <div className="text-sm text-gray-500">View all available properties</div>
+                      <div className="font-medium">Browse All Properties for Sale</div>
+                      <div className="text-sm text-gray-500">View all available properties for sale</div>
                     </div>
                   </Link>
                 </div>
@@ -519,6 +500,28 @@ const SiteHeader = () => {
                     <div>
                       <div className="font-medium">Short-term Stays</div>
                       <div className="text-sm text-gray-500">AirBnB and vacation rentals</div>
+                    </div>
+                  </Link>
+                  <Link
+                    to="/rentals?type=apartment"
+                    className="flex items-center gap-3 px-3 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+                    onClick={closeMobileMenu}
+                  >
+                    <Building2 className="w-5 h-5" />
+                    <div>
+                      <div className="font-medium">Apartments for Rent</div>
+                      <div className="text-sm text-gray-500">Modern apartments in prime locations</div>
+                    </div>
+                  </Link>
+                  <Link
+                    to="/rentals"
+                    className="flex items-center gap-3 px-3 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+                    onClick={closeMobileMenu}
+                  >
+                    <Search className="w-5 h-5" />
+                    <div>
+                      <div className="font-medium">Browse All Rentals</div>
+                      <div className="text-sm text-gray-500">View all available rental properties</div>
                     </div>
                   </Link>
                 </div>

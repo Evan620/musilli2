@@ -172,11 +172,11 @@ export const PropertyQuickPreview = ({ property, onClose, onViewDetails }: Prope
           </div>
 
           {/* Amenities */}
-          {property.amenities && property.amenities.length > 0 && (
+          {property.features.amenities && property.features.amenities.length > 0 && (
             <div>
               <h4 className="font-semibold text-black mb-2">Amenities</h4>
               <div className="flex flex-wrap gap-2">
-                {property.amenities.slice(0, 6).map((amenity, index) => (
+                {property.features.amenities.slice(0, 6).map((amenity, index) => (
                   <div
                     key={index}
                     className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full text-sm"
@@ -185,9 +185,9 @@ export const PropertyQuickPreview = ({ property, onClose, onViewDetails }: Prope
                     <span>{amenity}</span>
                   </div>
                 ))}
-                {property.amenities.length > 6 && (
+                {property.features.amenities.length > 6 && (
                   <div className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                    +{property.amenities.length - 6} more
+                    +{property.features.amenities.length - 6} more
                   </div>
                 )}
               </div>

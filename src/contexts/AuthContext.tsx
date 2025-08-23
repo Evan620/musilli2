@@ -1,45 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType, UserRole } from '@/types';
-import { getProviderCredentials } from '@/contexts/ProviderContext';
+import { authService } from '@/lib/supabase-auth';
+import { supabase } from '@/lib/supabase';
+import { Navigate, useLocation } from 'react-router-dom';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Mock users for demonstration - in a real app, this would come from an API
-const mockUsers: (User & { password: string })[] = [
-  {
-    id: 'admin-1',
-    email: 'admin@musillihomes.com',
-    password: 'admin123',
-    name: 'Admin User',
-    phone: '+1234567890',
-    role: 'admin',
-    status: 'approved',
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
-  },
-  {
-    id: 'provider-1',
-    email: 'provider@example.com',
-    password: 'provider123',
-    name: 'John Provider',
-    phone: '+1234567891',
-    role: 'provider',
-    status: 'approved',
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-  },
-  {
-    id: 'user-1',
-    email: 'user@example.com',
-    password: 'user123',
-    name: 'Jane User',
-    phone: '+1234567892',
-    role: 'user',
-    status: 'approved',
-    createdAt: new Date('2024-02-01'),
-    updatedAt: new Date('2024-02-01'),
-  },
-];
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -48,114 +13,192 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Check for stored user session on app load
-    const storedUser = localStorage.getItem('musilli_user');
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('musilli_user');
+  // Simple and robust user profile loading
+  const loadUserProfile = async () => {
+    try {
+      console.log('🔄 AuthContext: Loading user profile...');
+      
+      // Get current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session?.user) {
+        console.log('❌ AuthContext: No valid session');
+        setUser(null);
+        return;
       }
-    }
-    setIsLoading(false);
-  }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
+      const authUser = session.user;
+      console.log('👤 AuthContext: Found auth user:', authUser.email);
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      // Try to get profile from database (with fallback)
+      let profile = null;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+        
+        if (!error && data) {
+          profile = data;
+          console.log('✅ AuthContext: Profile loaded from database');
+        }
+      } catch (dbError) {
+        console.warn('⚠️ AuthContext: Database query failed, using fallback');
+      }
 
-    // First check mock users (admin, existing users)
-    const foundUser = mockUsers.find(u => u.email === email && u.password === password);
-
-    if (foundUser && foundUser.status === 'approved') {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('musilli_user', JSON.stringify(userWithoutPassword));
-      setIsLoading(false);
-      return true;
-    }
-
-    // Then check provider credentials
-    const providerCredentials = getProviderCredentials(email, password);
-    if (providerCredentials) {
-      // Create user object for approved provider
-      const providerUser: User = {
-        id: providerCredentials.id,
-        email: providerCredentials.email,
-        name: 'Provider User', // This would come from provider data in a real app
-        role: 'provider',
-        status: 'approved',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      // Create user object (with database profile or fallback to auth metadata)
+      const userObj: User = {
+        id: authUser.id,
+        email: authUser.email || '',
+        name: profile?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+        phone: profile?.phone || authUser.user_metadata?.phone || '',
+        role: (profile?.role || authUser.user_metadata?.role || 'user') as UserRole,
+        status: profile?.status || authUser.user_metadata?.status || 'approved',
+        avatar: profile?.avatar_url || authUser.user_metadata?.avatar_url || null,
+        createdAt: new Date(profile?.created_at || authUser.created_at || Date.now()),
+        updatedAt: new Date(profile?.updated_at || authUser.updated_at || Date.now())
       };
 
-      setUser(providerUser);
-      localStorage.setItem('musilli_user', JSON.stringify(providerUser));
-      setIsLoading(false);
-      return true;
+      console.log('✅ AuthContext: User profile loaded:', { email: userObj.email, role: userObj.role });
+      setUser(userObj);
+      
+    } catch (error) {
+      console.error('❌ AuthContext: Error loading user profile:', error);
+      setUser(null);
     }
-
-    setIsLoading(false);
-    return false;
   };
 
-  const loginWithGoogle = async (googleUser: any): Promise<boolean> => {
+  // Initialize authentication
+  const initializeAuth = async () => {
+    console.log('🚀 AuthContext: Initializing authentication...');
+    setIsLoading(true);
+    
+    try {
+      await loadUserProfile();
+    } catch (error) {
+      console.error('❌ AuthContext: Initialization failed:', error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Set up auth state listener
+  useEffect(() => {
+    console.log('🔗 AuthContext: Setting up auth state listener...');
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 AuthContext: Auth state changed:', event, !!session?.user);
+
+      if (event === 'SIGNED_OUT') {
+        console.log('🔐 AuthContext: User signed out');
+        setUser(null);
+        setSessionError(null);
+        setIsLoading(false);
+      } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          console.log('🔐 AuthContext: User signed in, loading profile...');
+          await loadUserProfile();
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('🔐 AuthContext: Token refreshed');
+        // Don't reload profile on token refresh to avoid loops
+        setIsLoading(false);
+      }
+    });
+
+    // Initialize auth on mount
+    initializeAuth();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []); // Empty dependency array - only run once
+
+  // Login function
+  const login = async (email: string, password: string) => {
+    try {
+      console.log('🔐 AuthContext: Attempting login...');
+      setSessionError(null);
+      
+      const result = await authService.signIn(email, password);
+      
+      if (result.success) {
+        console.log('✅ AuthContext: Login successful');
+        // loadUserProfile will be called by the auth state change listener
+        return { success: true };
+      } else {
+        console.error('❌ AuthContext: Login failed:', result.error);
+        setSessionError(result.error || 'Login failed');
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('❌ AuthContext: Login error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      setSessionError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  // Logout function
+  const logout = async () => {
+    try {
+      console.log('🔐 AuthContext: Logging out...');
+      setIsLoggingOut(true);
+      setUser(null); // Clear user immediately for better UX
+      
+      await authService.signOut();
+      
+      // Clear any stored data
+      setSessionError(null);
+      
+      console.log('✅ AuthContext: Logout successful');
+    } catch (error) {
+      console.error('❌ AuthContext: Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Session recovery function
+  const recoverSession = async () => {
+    console.log('🔄 AuthContext: Attempting session recovery...');
+    setSessionError(null);
     setIsLoading(true);
 
     try {
-      // In a real app, you would send the Google token to your backend
-      // For now, we'll create a user from Google data
-      const newUser: User = {
-        id: `google-${googleUser.sub}`,
-        email: googleUser.email,
-        name: googleUser.name,
-        phone: '', // Google doesn't always provide phone
-        role: 'user' as UserRole,
-        status: 'approved',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        avatar: googleUser.picture,
-      };
-
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
-      setIsLoading(false);
-      return true;
+      await loadUserProfile();
     } catch (error) {
-      console.error('Google login error:', error);
+      console.error('❌ AuthContext: Session recovery failed:', error);
+      setSessionError('Session recovery failed. Please log in again.');
+      setUser(null);
+    } finally {
       setIsLoading(false);
-      return false;
     }
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('musilli_user');
   };
 
   const value: AuthContextType = {
     user,
-    login,
-    loginWithGoogle,
-    logout,
     isLoading,
-    isAuthenticated: !!user,
+    isLoggingOut,
+    sessionError,
+    login,
+    logout,
+    recoverSession,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = (): AuthContextType => {
+// Hook to use auth context
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
@@ -163,54 +206,43 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
-// Higher-order component for protecting routes
+// Safe auth hook for components that might not be wrapped in AuthProvider
+export const useAuthSafe = () => {
+  return useContext(AuthContext);
+};
+
+// Protected Route Component
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: UserRole;
   fallback?: ReactNode;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  requiredRole, 
-  fallback = <div>Access denied. Please log in.</div> 
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requiredRole,
+  fallback = <div>Access denied. Please log in.</div>
 }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isLoggingOut } = useAuth();
+  const location = useLocation();
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (isLoading || isLoggingOut) {
+    return <div>Loading...</div>;
   }
 
   if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Special case: If admin tries to access provider dashboard, redirect to admin dashboard
+  if (requiredRole === 'provider' && user.role === 'admin') {
+    return <Navigate to="/dashboard/admin" replace />;
+  }
+
+  // Check role requirements (admin can access everything)
+  if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
     return <>{fallback}</>;
   }
 
-  if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-        <p>You don't have permission to access this page.</p>
-      </div>
-    </div>;
-  }
-
   return <>{children}</>;
-};
-
-// Hook to check if user has specific role
-export const useRole = (role: UserRole): boolean => {
-  const { user } = useAuth();
-  return user?.role === role || user?.role === 'admin';
-};
-
-// Hook to check if user is admin
-export const useIsAdmin = (): boolean => {
-  const { user } = useAuth();
-  return user?.role === 'admin';
-};
-
-// Hook to check if user is provider
-export const useIsProvider = (): boolean => {
-  const { user } = useAuth();
-  return user?.role === 'provider';
 };

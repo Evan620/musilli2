@@ -19,4 +19,8 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    // Suppress React DevTools warning in production
+    __REACT_DEVTOOLS_GLOBAL_HOOK__: mode === 'production' ? '({ isDisabled: true })' : undefined,
+  },
 }));

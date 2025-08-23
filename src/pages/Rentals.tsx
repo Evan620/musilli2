@@ -34,7 +34,7 @@ const Rentals = () => {
 
   const [filters, setFilters] = useState<PropertySearchFilters>({
     query: "",
-    category: showAllProperties ? "sale" : "rent",  // When showing all properties, default to sale
+    category: showAllProperties ? undefined : "rent",  // When showing all properties, don't filter by category
     providerId: providerId || undefined,  // Filter by provider if specified
     sortBy: "date",
     sortOrder: "desc",
@@ -177,7 +177,7 @@ const Rentals = () => {
 
   // Apply feature filtering if features are selected
   const baseProperties = showAllProperties
-    ? results  // When showing all properties, the filters.category already handles the FOR SALE/FOR RENT selection
+    ? results  // When showing all properties, show everything
     : results.filter(p => p.category === 'rent' || p.category === 'short-term-rental');
 
   const rentalProperties = selectedFeatures.length > 0

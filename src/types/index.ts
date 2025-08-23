@@ -9,10 +9,16 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   avatar?: string; // For Google profile pictures
+  // Enhanced user management fields
+  lastLoginAt?: Date;
+  loginCount?: number;
+  suspensionReason?: string;
+  suspendedAt?: Date;
+  notes?: string;
 }
 
 export type UserRole = 'admin' | 'provider' | 'user';
-export type UserStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+export type UserStatus = 'email_unconfirmed' | 'pending' | 'approved' | 'rejected' | 'suspended';
 
 // Provider-specific information
 export interface Provider extends User {
@@ -204,19 +210,26 @@ export interface PropertySearchFilters {
 // Context types
 export interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  loginWithGoogle: (googleUser: any) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isLoading: boolean;
-  isAuthenticated: boolean;
+  isLoggingOut: boolean;
+  sessionError?: string | null;
+  recoverSession?: () => Promise<void>;
 }
 
 export interface PropertyContextType {
   properties: Property[];
-  addProperty: (property: PropertyFormData) => Promise<boolean>;
+  addProperty: (
+    property: PropertyFormData,
+    onProgress?: (current: number, total: number, fileName: string) => void
+  ) => Promise<boolean>;
   updateProperty: (id: string, property: Partial<PropertyFormData>) => Promise<boolean>;
+  approveProperty: (id: string) => Promise<boolean>;
+  rejectProperty: (id: string) => Promise<boolean>;
   deleteProperty: (id: string) => Promise<boolean>;
   getProperty: (id: string) => Property | undefined;
   searchProperties: (filters: PropertySearchFilters) => Property[];
+  refreshProperties: () => Promise<void>;
   isLoading: boolean;
 }

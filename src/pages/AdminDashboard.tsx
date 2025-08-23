@@ -7,8 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProperties } from "@/contexts/PropertyContext";
 import { useProviders } from "@/contexts/ProviderContext";
+import { useAdmin } from "@/contexts/AdminContext";
+import { propertyService } from "@/lib/supabase-properties";
 import { toast } from "@/hooks/use-toast";
 import { AdminStats, Property, User } from "@/types";
+import { analyticsService, GrowthMetrics } from "@/lib/supabase-analytics";
 import {
   Users,
   Home,
@@ -16,6 +19,7 @@ import {
   MessageSquare,
   DollarSign,
   TrendingUp,
+  TrendingDown,
   CheckCircle,
   XCircle,
   Clock,
@@ -34,7 +38,11 @@ import {
   Filter,
   Search,
   Download,
-  RefreshCw
+  RefreshCw,
+  UserCheck,
+  UserX,
+  Trash2,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -43,138 +51,230 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { AdminSessionKeeper } from "@/components/AdminSessionKeeper";
+import { PropertyEditDialog } from "@/components/PropertyEditDialog";
+import { PropertyDetailsDialog } from "@/components/PropertyDetailsDialog";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { properties, updateProperty } = useProperties();
+  const { properties, updateProperty, deleteProperty, refreshProperties } = useProperties();
   const { providers, pendingProviders: pendingProvidersList, approveProvider, rejectProvider, isLoading: providersLoading } = useProviders();
-  const [stats, setStats] = useState<AdminStats>({
-    totalUsers: 0,
-    totalProviders: 0,
-    pendingProviders: 0,
-    totalProperties: 0,
-    pendingProperties: 0,
-    totalInquiries: 0,
-    newInquiries: 0,
-    revenue: 0,
-    activeSubscriptions: 0,
+  const [growthMetrics, setGrowthMetrics] = useState<GrowthMetrics>({
+    userGrowth: 0,
+    providerGrowth: 0,
+    propertyGrowth: 0,
+    revenueGrowth: 0,
+    inquiryGrowth: 0,
+    viewsGrowth: 0
   });
+  const [isLoadingGrowth, setIsLoadingGrowth] = useState(true);
+  const {
+    users,
+    userStats,
+    totalUsers,
+    currentPage,
+    totalPages,
+    isLoadingUsers,
+    activityFeed,
+    notifications,
+    unreadNotificationCount,
+    isLoadingActivity,
+    dashboardAnalytics,
+    isLoadingAnalytics,
+    loadUsers,
+    searchUsers,
+    suspendUser,
+    activateUser,
+    deleteUser,
+    refreshStats,
+    refreshActivity,
+    refreshAnalytics
+  } = useAdmin();
 
   const pendingProperties = properties.filter(p => p.status === 'pending');
+  const approvedProperties = properties.filter(p => p.status === 'published' || p.status === 'approved');
 
-  // Mock users data - in a real app, this would come from a users context or API
-  const [allUsers] = useState<User[]>([
-    {
-      id: '1',
-      email: 'john.doe@example.com',
-      name: 'John Doe',
-      phone: '+254712345678',
-      role: 'user',
-      status: 'approved',
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15'),
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: '2',
-      email: 'jane.smith@example.com',
-      name: 'Jane Smith',
-      phone: '+254723456789',
-      role: 'user',
-      status: 'approved',
-      createdAt: new Date('2024-01-20'),
-      updatedAt: new Date('2024-01-20'),
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: '3',
-      email: 'mike.johnson@realty.com',
-      name: 'Mike Johnson',
-      phone: '+254734567890',
-      role: 'provider',
-      status: 'approved',
-      createdAt: new Date('2024-01-10'),
-      updatedAt: new Date('2024-01-10'),
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: '4',
-      email: 'sarah.wilson@example.com',
-      name: 'Sarah Wilson',
-      phone: '+254745678901',
-      role: 'user',
-      status: 'pending',
-      createdAt: new Date('2024-02-01'),
-      updatedAt: new Date('2024-02-01'),
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: '5',
-      email: 'admin@buildbnb.com',
-      name: 'Admin User',
-      phone: '+254756789012',
-      role: 'admin',
-      status: 'approved',
-      createdAt: new Date('2023-12-01'),
-      updatedAt: new Date('2023-12-01'),
-      avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: '6',
-      email: 'david.brown@properties.com',
-      name: 'David Brown',
-      phone: '+254767890123',
-      role: 'provider',
-      status: 'suspended',
-      createdAt: new Date('2024-01-05'),
-      updatedAt: new Date('2024-01-25'),
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: '7',
-      email: 'lisa.garcia@example.com',
-      name: 'Lisa Garcia',
-      phone: '+254778901234',
-      role: 'user',
-      status: 'approved',
-      createdAt: new Date('2024-01-25'),
-      updatedAt: new Date('2024-01-25'),
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: '8',
-      email: 'robert.taylor@example.com',
-      name: 'Robert Taylor',
-      phone: '+254789012345',
-      role: 'user',
-      status: 'rejected',
-      createdAt: new Date('2024-01-30'),
-      updatedAt: new Date('2024-02-02'),
-      avatar: 'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=150&h=150&fit=crop&crop=face'
+  // User management state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suspendDialog, setSuspendDialog] = useState<{open: boolean, userId: string, userName: string}>({
+    open: false,
+    userId: "",
+    userName: ""
+  });
+
+  // Property management state
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{open: boolean, propertyId: string, propertyTitle: string}>({
+    open: false,
+    propertyId: "",
+    propertyTitle: ""
+  });
+  const [suspendReason, setSuspendReason] = useState("");
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  // Load growth metrics on component mount
+  useEffect(() => {
+    const loadGrowthMetrics = async () => {
+      try {
+        setIsLoadingGrowth(true);
+        const metrics = await analyticsService.getGrowthMetrics();
+        setGrowthMetrics(metrics);
+      } catch (error) {
+        console.error('Error loading growth metrics:', error);
+      } finally {
+        setIsLoadingGrowth(false);
+      }
+    };
+
+    loadGrowthMetrics();
+  }, []);
+
+  // Calculate stats from real analytics data
+  const stats: AdminStats = {
+    totalUsers: dashboardAnalytics?.overview.total_users || 0,
+    totalProviders: dashboardAnalytics?.overview.total_providers || 0,
+    pendingProviders: dashboardAnalytics?.overview.pending_providers || 0,
+    totalProperties: dashboardAnalytics?.overview.total_properties || 0,
+    pendingProperties: dashboardAnalytics?.overview.pending_properties || 0,
+    totalInquiries: dashboardAnalytics?.property_performance.reduce((sum, day) => sum + day.total_inquiries, 0) || 0,
+    newInquiries: dashboardAnalytics?.property_performance[0]?.total_inquiries || 0,
+    revenue: dashboardAnalytics?.overview.total_revenue || 0,
+    activeSubscriptions: dashboardAnalytics?.overview.active_providers || 0,
+  };
+
+  // Real user action handlers
+  const handleSuspendUser = (userId: string, userName: string) => {
+    setSuspendDialog({ open: true, userId, userName });
+  };
+
+  const handleConfirmSuspend = async () => {
+    if (!suspendReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for suspension.",
+        variant: "destructive",
+      });
+      return;
     }
-  ]);
 
-  const handleSuspendUser = (userId: string) => {
-    toast({
-      title: "User Suspended",
-      description: "The user has been suspended and can no longer access the platform.",
-    });
+    setIsActionLoading(true);
+    try {
+      const result = await suspendUser(suspendDialog.userId, suspendReason);
+
+      if (result.success) {
+        toast({
+          title: "User Suspended",
+          description: result.message,
+        });
+        setSuspendDialog({ open: false, userId: "", userName: "" });
+        setSuspendReason("");
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to suspend user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  const handleActivateUser = (userId: string) => {
-    toast({
-      title: "User Activated",
-      description: "The user has been activated and can now access the platform.",
-    });
+  const handleActivateUser = async (userId: string) => {
+    setIsActionLoading(true);
+    try {
+      const result = await activateUser(userId);
+
+      if (result.success) {
+        toast({
+          title: "User Activated",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to activate user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  const handleDeleteUser = (userId: string) => {
-    toast({
-      title: "User Deleted",
-      description: "The user account has been permanently deleted.",
-      variant: "destructive",
-    });
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsActionLoading(true);
+    try {
+      const result = await deleteUser(userId, "Admin deletion");
+
+      if (result.success) {
+        toast({
+          title: "User Deleted",
+          description: result.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  // Handle search with debouncing
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      await searchUsers(query.trim());
+    } else {
+      await loadUsers(1);
+    }
   };
 
   const getUserStatusBadge = (status: User['status']) => {
@@ -219,30 +319,54 @@ const AdminDashboard = () => {
     );
   };
 
-  useEffect(() => {
-    // Calculate admin stats
-    const totalViews = properties.reduce((sum, p) => sum + p.views, 0);
-    const totalInquiries = properties.reduce((sum, p) => sum + p.inquiries, 0);
 
-    setStats({
-      totalUsers: 150, // Mock data
-      totalProviders: providers.length,
-      pendingProviders: pendingProvidersList.length,
-      totalProperties: properties.length,
-      pendingProperties: pendingProperties.length,
-      totalInquiries,
-      newInquiries: Math.floor(totalInquiries * 0.2), // Mock: 20% are new
-      revenue: 12500, // Mock revenue
-      activeSubscriptions: providers.filter(p => p.approvalStatus === 'approved').length,
-    });
-  }, [properties, providers, pendingProvidersList, pendingProperties]);
 
   const handleApproveProperty = async (propertyId: string) => {
-    await updateProperty(propertyId, { status: 'published' });
+    console.log('🔄 Admin approving property:', propertyId);
+    const result = await propertyService.approveProperty(propertyId);
+
+    if (result.success) {
+      toast({
+        title: "Property Approved",
+        description: "The property has been published and is now visible to the public.",
+      });
+      // Refresh properties data without page reload
+      await Promise.all([
+        refreshStats(),
+        refreshAnalytics(),
+        refreshProperties()
+      ]);
+    } else {
+      toast({
+        title: "Approval Failed",
+        description: result.error || "Failed to approve property. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRejectProperty = async (propertyId: string) => {
-    await updateProperty(propertyId, { status: 'rejected' });
+    console.log('🔄 Admin rejecting property:', propertyId);
+    const result = await propertyService.rejectProperty(propertyId);
+
+    if (result.success) {
+      toast({
+        title: "Property Rejected",
+        description: "The property has been rejected and will not be published.",
+      });
+      // Refresh properties data without page reload
+      await Promise.all([
+        refreshStats(),
+        refreshAnalytics(),
+        refreshProperties()
+      ]);
+    } else {
+      toast({
+        title: "Rejection Failed",
+        description: result.error || "Failed to reject property. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleApproveProvider = async (providerId: string) => {
@@ -251,7 +375,8 @@ const AdminDashboard = () => {
       if (success) {
         toast({
           title: "Provider Approved",
-          description: "The provider has been approved and can now appear in the Partner Agents section.",
+          description: "The provider has been approved and can now access their dashboard. They may need to refresh their browser to see the changes.",
+          duration: 6000,
         });
       } else {
         toast({
@@ -320,15 +445,20 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleRefresh = () => {
-    // Simulate refresh by showing loading state and updating stats
+  const handleRefresh = async () => {
+    // Refresh all dashboard data without page reload
     toast({
       title: "Dashboard Refreshed",
       description: "All data has been refreshed successfully.",
     });
 
-    // Force re-calculation of stats
-    window.location.reload();
+    // Refresh all data sources
+    await Promise.all([
+      refreshStats(),
+      refreshActivity(),
+      refreshAnalytics(),
+      refreshProperties()
+    ]);
   };
 
   const handleViewAllProviders = () => {
@@ -337,6 +467,52 @@ const AdminDashboard = () => {
 
   const handleViewAllProperties = () => {
     navigate('/rentals');
+  };
+
+  // Property management handlers
+  const handleViewProperty = (property: Property) => {
+    setSelectedProperty(property);
+    setIsDetailsDialogOpen(true);
+  };
+
+  const handleEditProperty = (property: Property) => {
+    setSelectedProperty(property);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteProperty = (property: Property) => {
+    setDeleteDialog({
+      open: true,
+      propertyId: property.id,
+      propertyTitle: property.title
+    });
+  };
+
+  const confirmDeleteProperty = async () => {
+    if (deleteDialog.propertyId) {
+      const success = await deleteProperty(deleteDialog.propertyId);
+      if (success) {
+        toast({
+          title: "Property Deleted",
+          description: "The property has been deleted successfully.",
+        });
+      } else {
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete the property. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+    setDeleteDialog({ open: false, propertyId: "", propertyTitle: "" });
+  };
+
+  const handlePropertySaved = () => {
+    // Refresh data or handle any post-save actions
+    toast({
+      title: "Property Updated",
+      description: "The property has been updated successfully.",
+    });
   };
 
   const getStatusBadge = (status: Property['status']) => {
@@ -368,8 +544,11 @@ const AdminDashboard = () => {
     );
   }
 
+  console.log('✅ AdminDashboard: Rendering dashboard for admin user:', user.email);
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <AdminSessionKeeper />
       <div className="container mx-auto py-6 sm:py-8 px-4 sm:px-6">
         {/* Header Section */}
         <div className="mb-8">
@@ -405,8 +584,28 @@ const AdminDashboard = () => {
                   <p className="text-blue-100 text-sm font-medium">Total Users</p>
                   <p className="text-3xl font-bold mt-1">{stats.totalUsers}</p>
                   <div className="flex items-center gap-1 mt-2">
-                    <ArrowUpRight className="w-4 h-4 text-blue-200" />
-                    <span className="text-blue-100 text-sm">+12% from last month</span>
+                    {isLoadingGrowth ? (
+                      <span className="text-blue-100 text-sm">Loading...</span>
+                    ) : (
+                      <>
+                        {analyticsService.formatGrowthPercentage(growthMetrics.userGrowth).isPositive ? (
+                          <ArrowUpRight className="w-4 h-4 text-blue-200" />
+                        ) : analyticsService.formatGrowthPercentage(growthMetrics.userGrowth).isNeutral ? (
+                          <Activity className="w-4 h-4 text-blue-200" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4 text-blue-200" />
+                        )}
+                        <span className={`text-sm ${
+                          analyticsService.formatGrowthPercentage(growthMetrics.userGrowth).isPositive
+                            ? 'text-blue-100'
+                            : analyticsService.formatGrowthPercentage(growthMetrics.userGrowth).isNeutral
+                              ? 'text-blue-200'
+                              : 'text-blue-300'
+                        }`}>
+                          {analyticsService.formatGrowthPercentage(growthMetrics.userGrowth).text}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="bg-white/20 p-3 rounded-full">
@@ -424,15 +623,26 @@ const AdminDashboard = () => {
                   <p className="text-emerald-100 text-sm font-medium">Properties</p>
                   <p className="text-3xl font-bold mt-1">{stats.totalProperties}</p>
                   <div className="flex items-center gap-1 mt-2">
-                    {stats.pendingProperties > 0 ? (
-                      <>
-                        <AlertCircle className="w-4 h-4 text-emerald-200" />
-                        <span className="text-emerald-100 text-sm">{stats.pendingProperties} pending</span>
-                      </>
+                    {isLoadingGrowth ? (
+                      <span className="text-emerald-100 text-sm">Loading...</span>
                     ) : (
                       <>
-                        <CheckCircle className="w-4 h-4 text-emerald-200" />
-                        <span className="text-emerald-100 text-sm">All approved</span>
+                        {analyticsService.formatGrowthPercentage(growthMetrics.propertyGrowth).isPositive ? (
+                          <ArrowUpRight className="w-4 h-4 text-emerald-200" />
+                        ) : analyticsService.formatGrowthPercentage(growthMetrics.propertyGrowth).isNeutral ? (
+                          <Activity className="w-4 h-4 text-emerald-200" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4 text-emerald-200" />
+                        )}
+                        <span className={`text-sm ${
+                          analyticsService.formatGrowthPercentage(growthMetrics.propertyGrowth).isPositive
+                            ? 'text-emerald-100'
+                            : analyticsService.formatGrowthPercentage(growthMetrics.propertyGrowth).isNeutral
+                              ? 'text-emerald-200'
+                              : 'text-emerald-300'
+                        }`}>
+                          {analyticsService.formatGrowthPercentage(growthMetrics.propertyGrowth).text}
+                        </span>
                       </>
                     )}
                   </div>
@@ -452,8 +662,28 @@ const AdminDashboard = () => {
                   <p className="text-purple-100 text-sm font-medium">Revenue</p>
                   <p className="text-3xl font-bold mt-1">KSH {(stats.revenue * 130).toLocaleString()}</p>
                   <div className="flex items-center gap-1 mt-2">
-                    <ArrowUpRight className="w-4 h-4 text-purple-200" />
-                    <span className="text-purple-100 text-sm">+8% from last month</span>
+                    {isLoadingGrowth ? (
+                      <span className="text-purple-100 text-sm">Loading...</span>
+                    ) : (
+                      <>
+                        {analyticsService.formatGrowthPercentage(growthMetrics.revenueGrowth).isPositive ? (
+                          <ArrowUpRight className="w-4 h-4 text-purple-200" />
+                        ) : analyticsService.formatGrowthPercentage(growthMetrics.revenueGrowth).isNeutral ? (
+                          <Activity className="w-4 h-4 text-purple-200" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4 text-purple-200" />
+                        )}
+                        <span className={`text-sm ${
+                          analyticsService.formatGrowthPercentage(growthMetrics.revenueGrowth).isPositive
+                            ? 'text-purple-100'
+                            : analyticsService.formatGrowthPercentage(growthMetrics.revenueGrowth).isNeutral
+                              ? 'text-purple-200'
+                              : 'text-purple-300'
+                        }`}>
+                          {analyticsService.formatGrowthPercentage(growthMetrics.revenueGrowth).text}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="bg-white/20 p-3 rounded-full">
@@ -471,8 +701,28 @@ const AdminDashboard = () => {
                   <p className="text-orange-100 text-sm font-medium">Inquiries</p>
                   <p className="text-3xl font-bold mt-1">{stats.totalInquiries}</p>
                   <div className="flex items-center gap-1 mt-2">
-                    <Activity className="w-4 h-4 text-orange-200" />
-                    <span className="text-orange-100 text-sm">{stats.newInquiries} new this week</span>
+                    {isLoadingGrowth ? (
+                      <span className="text-orange-100 text-sm">Loading...</span>
+                    ) : (
+                      <>
+                        {analyticsService.formatGrowthPercentage(growthMetrics.inquiryGrowth).isPositive ? (
+                          <ArrowUpRight className="w-4 h-4 text-orange-200" />
+                        ) : analyticsService.formatGrowthPercentage(growthMetrics.inquiryGrowth).isNeutral ? (
+                          <Activity className="w-4 h-4 text-orange-200" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4 text-orange-200" />
+                        )}
+                        <span className={`text-sm ${
+                          analyticsService.formatGrowthPercentage(growthMetrics.inquiryGrowth).isPositive
+                            ? 'text-orange-100'
+                            : analyticsService.formatGrowthPercentage(growthMetrics.inquiryGrowth).isNeutral
+                              ? 'text-orange-200'
+                              : 'text-orange-300'
+                        }`}>
+                          {analyticsService.formatGrowthPercentage(growthMetrics.inquiryGrowth).text}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="bg-white/20 p-3 rounded-full">
@@ -537,32 +787,47 @@ const AdminDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">New property approved</p>
-                        <p className="text-xs text-muted-foreground">Modern Luxury Villa in Mombasa</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground">2 min ago</span>
+                  {isLoadingActivity ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                      Loading activity...
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">New provider registered</p>
-                        <p className="text-xs text-muted-foreground">Sarabi Listings from Nairobi</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground">1 hour ago</span>
+                  ) : activityFeed.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No recent activity
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">New inquiry received</p>
-                        <p className="text-xs text-muted-foreground">Downtown Apartment inquiry</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground">3 hours ago</span>
+                  ) : (
+                    <div className="space-y-4">
+                      {activityFeed.slice(0, 5).map((activity) => (
+                        <div key={activity.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                          <div className={`w-2 h-2 rounded-full ${
+                            activity.actionType.includes('approve') ? 'bg-green-500' :
+                            activity.actionType.includes('suspend') ? 'bg-red-500' :
+                            activity.actionType.includes('activate') ? 'bg-blue-500' :
+                            'bg-orange-500'
+                          }`}></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">
+                              {activity.actionType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {activity.adminName} • {activity.targetEmail}
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(activity.createdAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      ))}
+                      {activityFeed.length > 5 && (
+                        <div className="text-center pt-2">
+                          <span className="text-xs text-muted-foreground">
+                            Showing 5 of {activityFeed.length} recent activities
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -633,7 +898,7 @@ const AdminDashboard = () => {
                         usersTab?.click();
                         toast({
                           title: "User Management",
-                          description: `Switched to Users tab. Found ${allUsers.length} platform users.`,
+                          description: `Switched to Users tab. Found ${totalUsers} platform users.`,
                         });
                       }}
                     >
@@ -661,7 +926,7 @@ const AdminDashboard = () => {
                     <Users className="w-5 h-5 text-blue-500" />
                     All Platform Users
                     <Badge variant="secondary" className="ml-2">
-                      {allUsers.length}
+                      {totalUsers}
                     </Badge>
                   </CardTitle>
                   <div className="flex items-center gap-2">
@@ -670,18 +935,30 @@ const AdminDashboard = () => {
                       <Input
                         placeholder="Search users..."
                         className="pl-10 w-64"
+                        value={searchQuery}
+                        onChange={(e) => handleSearch(e.target.value)}
                       />
                     </div>
-                    <Button variant="outline" size="sm">
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filter
+                    <Button variant="outline" size="sm" onClick={() => loadUsers(1)}>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Refresh
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {allUsers.map((platformUser) => (
+                {isLoadingUsers ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                    Loading users...
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No users found
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {users.map((platformUser) => (
                     <div key={platformUser.id} className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-4">
                         <img
@@ -723,18 +1000,28 @@ const AdminDashboard = () => {
                                   <DropdownMenuItem>View Details</DropdownMenuItem>
                                   <DropdownMenuItem>Edit User</DropdownMenuItem>
                                   {platformUser.status === 'suspended' ? (
-                                    <DropdownMenuItem onClick={() => handleActivateUser(platformUser.id)}>
+                                    <DropdownMenuItem
+                                      onClick={() => handleActivateUser(platformUser.id)}
+                                      disabled={isActionLoading}
+                                    >
+                                      <UserCheck className="w-4 h-4 mr-2" />
                                       Activate User
                                     </DropdownMenuItem>
                                   ) : (
-                                    <DropdownMenuItem onClick={() => handleSuspendUser(platformUser.id)}>
+                                    <DropdownMenuItem
+                                      onClick={() => handleSuspendUser(platformUser.id, platformUser.name)}
+                                      disabled={isActionLoading}
+                                    >
+                                      <UserX className="w-4 h-4 mr-2" />
                                       Suspend User
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDeleteUser(platformUser.id)}
+                                    disabled={isActionLoading}
                                   >
+                                    <Trash2 className="w-4 h-4 mr-2" />
                                     Delete User
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -745,7 +1032,38 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {users.length} of {totalUsers} users
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadUsers(currentPage - 1)}
+                        disabled={currentPage === 1 || isLoadingUsers}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-sm">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadUsers(currentPage + 1)}
+                        disabled={currentPage === totalPages || isLoadingUsers}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -764,7 +1082,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm font-medium">Regular Users</p>
                         <p className="text-xl font-bold text-blue-600">
-                          {allUsers.filter(u => u.role === 'user').length}
+                          {userStats?.usersByRole.user || 0}
                         </p>
                       </div>
                       <Users className="w-6 h-6 text-blue-600" />
@@ -773,7 +1091,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm font-medium">Providers</p>
                         <p className="text-xl font-bold text-purple-600">
-                          {allUsers.filter(u => u.role === 'provider').length}
+                          {userStats?.usersByRole.provider || 0}
                         </p>
                       </div>
                       <Building2 className="w-6 h-6 text-purple-600" />
@@ -782,7 +1100,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm font-medium">Admins</p>
                         <p className="text-xl font-bold text-green-600">
-                          {allUsers.filter(u => u.role === 'admin').length}
+                          {userStats?.usersByRole.admin || 0}
                         </p>
                       </div>
                       <Shield className="w-6 h-6 text-green-600" />
@@ -804,7 +1122,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm font-medium">Active Users</p>
                         <p className="text-xl font-bold text-green-600">
-                          {allUsers.filter(u => u.status === 'approved').length}
+                          {userStats?.activeUsers || 0}
                         </p>
                       </div>
                       <CheckCircle className="w-6 h-6 text-green-600" />
@@ -813,7 +1131,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm font-medium">Pending</p>
                         <p className="text-xl font-bold text-yellow-600">
-                          {allUsers.filter(u => u.status === 'pending').length}
+                          {users.filter(u => u.status === 'pending').length}
                         </p>
                       </div>
                       <Clock className="w-6 h-6 text-yellow-600" />
@@ -822,7 +1140,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm font-medium">Suspended</p>
                         <p className="text-xl font-bold text-red-600">
-                          {allUsers.filter(u => u.status === 'suspended').length}
+                          {userStats?.suspendedUsers || 0}
                         </p>
                       </div>
                       <XCircle className="w-6 h-6 text-red-600" />
@@ -840,7 +1158,7 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {allUsers
+                    {users
                       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
                       .slice(0, 4)
                       .map((recentUser) => (
@@ -977,57 +1295,78 @@ const AdminDashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {properties.slice(0, 8).map((property) => (
-                    <div key={property.id} className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={property.images[0]?.url || '/placeholder.svg'}
-                          alt={property.title}
-                          className="w-16 h-16 object-cover rounded-lg flex-shrink-0 border border-slate-200 dark:border-slate-700"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="font-semibold truncate">{property.title}</h3>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                <MapPin className="w-4 h-4" />
-                                {property.location.city}
-                              </div>
-                              <div className="flex items-center gap-4 mt-2">
-                                {getStatusBadge(property.status)}
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                  <Eye className="w-4 h-4" />
-                                  {property.views}
+                {approvedProperties.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Building2 className="w-8 h-8 text-blue-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">No approved properties yet</h3>
+                    <p className="text-muted-foreground">Approved properties will appear here once you approve pending submissions</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {approvedProperties.slice(0, 8).map((property) => (
+                        <div key={property.id} className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={property.images[0]?.url || '/placeholder.svg'}
+                              alt={property.title}
+                              className="w-16 h-16 object-cover rounded-lg flex-shrink-0 border border-slate-200 dark:border-slate-700"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h3 className="font-semibold truncate">{property.title}</h3>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                    <MapPin className="w-4 h-4" />
+                                    {property.location.city}
+                                  </div>
+                                  <div className="flex items-center gap-4 mt-2">
+                                    {getStatusBadge(property.status)}
+                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                      <Eye className="w-4 h-4" />
+                                      {property.views}
+                                    </div>
+                                    <span className="text-sm font-medium text-green-600">
+                                      {property.currency} {property.price.toLocaleString()}
+                                    </span>
+                                  </div>
                                 </div>
-                                <span className="text-sm font-medium text-green-600">
-                                  {property.currency} {property.price.toLocaleString()}
-                                </span>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleViewProperty(property)}>
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleEditProperty(property)}>
+                                      Edit Property
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() => handleDeleteProperty(property)}
+                                    >
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Property</DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
                           </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <div className="mt-6 text-center">
-                  <Button variant="outline" onClick={handleViewAllProperties}>
-                    View All Properties ({properties.length})
-                  </Button>
-                </div>
+                    <div className="mt-6 text-center">
+                      <Button variant="outline" onClick={handleViewAllProperties}>
+                        View All Properties ({approvedProperties.length})
+                      </Button>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
         </TabsContent>
@@ -1215,79 +1554,275 @@ const AdminDashboard = () => {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Platform Growth */}
-              <Card className="border-0 shadow-lg">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <TrendingUp className="w-5 h-5 text-green-500" />
-                    Platform Growth
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <div>
-                        <p className="text-sm font-medium">Monthly Active Users</p>
-                        <p className="text-2xl font-bold text-green-600">2,847</p>
+            {isLoadingAnalytics ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mr-3" />
+                Loading analytics...
+              </div>
+            ) : (
+              <>
+                {/* Real-time Metrics */}
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                  <Card className="border-0 shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Active Users</p>
+                          <p className="text-2xl font-bold">{dashboardAnalytics?.overview.active_users || 0}</p>
+                        </div>
+                        <Users className="w-8 h-8 text-blue-500" />
                       </div>
-                      <div className="text-green-600">
-                        <ArrowUpRight className="w-6 h-6" />
+                      <div className="mt-2 text-xs text-green-600">
+                        +{dashboardAnalytics?.overview.new_users_30_days || 0} this month
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <div>
-                        <p className="text-sm font-medium">Property Views</p>
-                        <p className="text-2xl font-bold text-blue-600">18,392</p>
-                      </div>
-                      <div className="text-blue-600">
-                        <ArrowUpRight className="w-6 h-6" />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                      <div>
-                        <p className="text-sm font-medium">Conversion Rate</p>
-                        <p className="text-2xl font-bold text-purple-600">12.4%</p>
-                      </div>
-                      <div className="text-purple-600">
-                        <ArrowUpRight className="w-6 h-6" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
 
-              {/* Top Performing Properties */}
-              <Card className="border-0 shadow-lg">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Star className="w-5 h-5 text-yellow-500" />
-                    Top Performing Properties
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {properties.slice(0, 4).map((property, index) => (
-                      <div key={property.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
-                        <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                          {index + 1}
+                  <Card className="border-0 shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Properties</p>
+                          <p className="text-2xl font-bold">{dashboardAnalytics?.overview.active_properties || 0}</p>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{property.title}</p>
-                          <p className="text-sm text-muted-foreground">{property.views} views</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{property.inquiries} inquiries</p>
-                        </div>
+                        <Home className="w-8 h-8 text-green-500" />
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                      <div className="mt-2 text-xs text-green-600">
+                        +{dashboardAnalytics?.overview.new_properties_30_days || 0} this month
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Daily Activity</p>
+                          <p className="text-2xl font-bold">{dashboardAnalytics?.overview.daily_activities || 0}</p>
+                        </div>
+                        <Activity className="w-8 h-8 text-purple-500" />
+                      </div>
+                      <div className="mt-2 text-xs text-blue-600">
+                        {dashboardAnalytics?.overview.daily_logins || 0} logins today
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Revenue</p>
+                          <p className="text-2xl font-bold">KSH {(dashboardAnalytics?.overview.total_revenue || 0).toLocaleString()}</p>
+                        </div>
+                        <DollarSign className="w-8 h-8 text-yellow-500" />
+                      </div>
+                      <div className="mt-2 text-xs text-green-600">
+                        +KSH {(dashboardAnalytics?.overview.revenue_30_days || 0).toLocaleString()} this month
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {/* User Growth Chart */}
+                  <Card className="border-0 shadow-lg">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <TrendingUp className="w-5 h-5 text-green-500" />
+                        User Growth (Last 30 Days)
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={refreshAnalytics}
+                          disabled={isLoadingAnalytics}
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </Button>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {dashboardAnalytics?.user_growth && dashboardAnalytics.user_growth.length > 0 ? (
+                        <div className="space-y-3">
+                          {dashboardAnalytics.user_growth.slice(-7).map((day, index) => (
+                            <div key={day.date} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                              <div>
+                                <p className="text-sm font-medium">{new Date(day.date).toLocaleDateString()}</p>
+                                <p className="text-xs text-muted-foreground">New registrations</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-bold text-green-600">+{day.new_users}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No growth data available
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Property Performance */}
+                  <Card className="border-0 shadow-lg">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Eye className="w-5 h-5 text-blue-500" />
+                        Property Performance (Last 7 Days)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {dashboardAnalytics?.property_performance && dashboardAnalytics.property_performance.length > 0 ? (
+                        <div className="space-y-3">
+                          {dashboardAnalytics.property_performance.slice(-7).map((day, index) => (
+                            <div key={day.date} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                              <div>
+                                <p className="text-sm font-medium">{new Date(day.date).toLocaleDateString()}</p>
+                                <p className="text-xs text-muted-foreground">Daily metrics</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-medium">{day.total_views} views</p>
+                                <p className="text-xs text-muted-foreground">{day.total_inquiries} inquiries</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No performance data available
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Activity Trends */}
+                <Card className="border-0 shadow-lg">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Activity className="w-5 h-5 text-purple-500" />
+                      Platform Activity Trends
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {dashboardAnalytics?.activity_trends && dashboardAnalytics.activity_trends.length > 0 ? (
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        {dashboardAnalytics.activity_trends.slice(-7).map((day) => (
+                          <div key={day.date} className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
+                            <p className="text-sm font-medium">{new Date(day.date).toLocaleDateString()}</p>
+                            <p className="text-2xl font-bold text-purple-600">{day.activity_count}</p>
+                            <p className="text-xs text-muted-foreground">activities</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No activity data available
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Suspend User Dialog */}
+      <Dialog open={suspendDialog.open} onOpenChange={(open) => setSuspendDialog(prev => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Suspend User</DialogTitle>
+            <DialogDescription>
+              You are about to suspend <strong>{suspendDialog.userName}</strong>.
+              Please provide a reason for this action.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Enter reason for suspension..."
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSuspendDialog({ open: false, userId: "", userName: "" });
+                setSuspendReason("");
+              }}
+              disabled={isActionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmSuspend}
+              disabled={isActionLoading || !suspendReason.trim()}
+            >
+              {isActionLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Suspending...
+                </>
+              ) : (
+                "Suspend User"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Property Details Dialog */}
+      <PropertyDetailsDialog
+        property={selectedProperty}
+        isOpen={isDetailsDialogOpen}
+        onClose={() => {
+          setIsDetailsDialogOpen(false);
+          setSelectedProperty(null);
+        }}
+      />
+
+      {/* Property Edit Dialog */}
+      <PropertyEditDialog
+        property={selectedProperty}
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setSelectedProperty(null);
+        }}
+        onSave={handlePropertySaved}
+      />
+
+      {/* Delete Property Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog(prev => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Property</DialogTitle>
+            <DialogDescription>
+              You are about to permanently delete <strong>{deleteDialog.propertyTitle}</strong>.
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialog({ open: false, propertyId: "", propertyTitle: "" })}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteProperty}
+            >
+              Delete Property
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 };

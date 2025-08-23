@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProperties } from "@/contexts/PropertyContext";
+import { propertyService } from "@/lib/supabase-properties";
 import { Property, ProviderStats } from "@/types";
 import {
   Plus,
@@ -28,30 +29,41 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ProviderDashboard = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { properties, deleteProperty } = useProperties();
-  const [stats, setStats] = useState<ProviderStats>({
-    totalListings: 0,
-    activeListings: 0,
-    pendingListings: 0,
-    totalViews: 0,
-    totalInquiries: 0,
-    newInquiries: 0,
-    monthlyViews: 0,
-    conversionRate: 0,
-  });
+  const { deleteProperty } = useProperties();
+  const [providerProperties, setProviderProperties] = useState<Property[]>([]);
+  const [isLoadingProperties, setIsLoadingProperties] = useState(true);
 
-  // Filter properties for current provider
-  const providerProperties = properties.filter(p => p.providerId === user?.id);
-
+  // Load provider's properties
   useEffect(() => {
-    // Calculate stats from provider's properties
+    const loadProviderProperties = async () => {
+      if (!user) return;
+
+      setIsLoadingProperties(true);
+      try {
+        console.log('🔄 ProviderDashboard: Loading provider properties...');
+        const properties = await propertyService.getProviderProperties();
+        console.log('✅ ProviderDashboard: Loaded', properties.length, 'properties');
+        setProviderProperties(properties);
+      } catch (error) {
+        console.error('❌ ProviderDashboard: Error loading properties:', error);
+        setProviderProperties([]);
+      } finally {
+        setIsLoadingProperties(false);
+      }
+    };
+
+    loadProviderProperties();
+  }, [user]);
+
+  const stats = useMemo(() => {
     const activeListings = providerProperties.filter(p => p.status === 'published').length;
     const pendingListings = providerProperties.filter(p => p.status === 'pending').length;
     const totalViews = providerProperties.reduce((sum, p) => sum + p.views, 0);
     const totalInquiries = providerProperties.reduce((sum, p) => sum + p.inquiries, 0);
 
-    setStats({
+    return {
       totalListings: providerProperties.length,
       activeListings,
       pendingListings,
@@ -60,8 +72,21 @@ const ProviderDashboard = () => {
       newInquiries: Math.floor(totalInquiries * 0.3), // Mock: 30% are new
       monthlyViews: Math.floor(totalViews * 0.6), // Mock: 60% are from this month
       conversionRate: totalViews > 0 ? (totalInquiries / totalViews) * 100 : 0,
-    });
+    };
   }, [providerProperties]);
+
+  const handleAddProperty = () => {
+    try {
+      // Small delay to ensure auth state is stable
+      setTimeout(() => {
+        navigate('/add-property');
+      }, 100);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback to window.location if navigate fails
+      window.location.href = '/add-property';
+    }
+  };
 
   const handleDeleteProperty = async (propertyId: string) => {
     if (window.confirm('Are you sure you want to delete this property?')) {
@@ -98,12 +123,13 @@ const ProviderDashboard = () => {
             <h1 className="text-2xl sm:text-3xl font-semibold text-gradient">Provider Dashboard</h1>
             <p className="text-muted-foreground text-sm sm:text-base">Welcome back, {user.name}! Manage your listings and track performance.</p>
           </div>
-          <Link to="/add-property">
-            <Button className="shadow-lg hover:shadow-xl transition-shadow w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Property
-            </Button>
-          </Link>
+          <Button
+            onClick={handleAddProperty}
+            className="shadow-lg hover:shadow-xl transition-shadow w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Property
+          </Button>
         </div>
       </header>
 
@@ -179,12 +205,10 @@ const ProviderDashboard = () => {
                   <Home className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No properties yet</h3>
                   <p className="text-muted-foreground mb-4">Start by adding your first property listing</p>
-                  <Link to="/add-property">
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Your First Property
-                    </Button>
-                  </Link>
+                  <Button onClick={handleAddProperty}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Your First Property
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-4">

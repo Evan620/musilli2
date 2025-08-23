@@ -213,19 +213,24 @@ const Index = () => {
   useParallaxEffect();
   use3DScrollEffect();
 
-  // Get latest 4 published properties
+  // Get Musilli Homes' own properties (Featured Properties)
+  // These are admin-created properties (no provider_id)
   const latestProperties = properties
-    .filter(property => property.status === 'published')
+    .filter(property => {
+      if (property.status !== 'published') return false;
+      // Admin properties have no provider_id (null)
+      return !property.providerId;
+    })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 4);
 
-  // Get partner agent properties (from all approved providers)
-  const approvedProviderIds = approvedProviders.map(provider => provider.id);
+  // Get partner agent properties (exclude admin properties)
   const partnerProperties = properties
-    .filter(property =>
-      property.status === 'published' &&
-      approvedProviderIds.includes(property.providerId)
-    )
+    .filter(property => {
+      if (property.status !== 'published') return false;
+      // Partner properties have a provider_id
+      return property.providerId && approvedProviders.find(p => p.id === property.providerId);
+    })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 4);
 
