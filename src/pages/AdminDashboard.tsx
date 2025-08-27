@@ -9,6 +9,7 @@ import { useProperties } from "@/contexts/PropertyContext";
 import { useProviders } from "@/contexts/ProviderContext";
 import { useAdmin } from "@/contexts/AdminContext";
 import { propertyService } from "@/lib/supabase-properties";
+import { PropertyRejectionDialog } from "@/components/admin/PropertyRejectionDialog";
 import { toast } from "@/hooks/use-toast";
 import { AdminStats, Property, User } from "@/types";
 import { analyticsService, GrowthMetrics } from "@/lib/supabase-analytics";
@@ -111,6 +112,16 @@ const AdminDashboard = () => {
 
   const pendingProperties = properties.filter(p => p.status === 'pending');
   const approvedProperties = properties.filter(p => p.status === 'published' || p.status === 'approved');
+  const rejectedProperties = properties.filter(p => p.status === 'rejected');
+
+  // Debug logging
+  console.log('🔍 AdminDashboard: Properties debug:', {
+    totalProperties: properties.length,
+    pendingCount: pendingProperties.length,
+    approvedCount: approvedProperties.length,
+    rejectedCount: rejectedProperties.length,
+    allStatuses: properties.map(p => ({ id: p.id, title: p.title, status: p.status }))
+  });
 
   // User management state
   const [searchQuery, setSearchQuery] = useState("");
@@ -129,6 +140,13 @@ const AdminDashboard = () => {
     propertyId: "",
     propertyTitle: ""
   });
+
+  // Rejection dialog state
+  const [rejectionDialog, setRejectionDialog] = useState<{open: boolean, property: Property | null}>({
+    open: false,
+    property: null
+  });
+
   const [suspendReason, setSuspendReason] = useState("");
   const [isActionLoading, setIsActionLoading] = useState(false);
 
@@ -345,14 +363,14 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleRejectProperty = async (propertyId: string) => {
-    console.log('🔄 Admin rejecting property:', propertyId);
-    const result = await propertyService.rejectProperty(propertyId);
+  const handleRejectProperty = async (propertyId: string, rejectionReason: string) => {
+    console.log('🔄 Admin rejecting property:', propertyId, 'with reason:', rejectionReason);
+    const result = await propertyService.rejectProperty(propertyId, rejectionReason);
 
     if (result.success) {
       toast({
         title: "Property Rejected",
-        description: "The property has been rejected and will not be published.",
+        description: "The property has been rejected and the provider has been notified.",
       });
       // Refresh properties data without page reload
       await Promise.all([
@@ -367,6 +385,13 @@ const AdminDashboard = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const openRejectionDialog = (property: Property) => {
+    setRejectionDialog({
+      open: true,
+      property
+    });
   };
 
   const handleApproveProvider = async (providerId: string) => {
@@ -1255,7 +1280,7 @@ const AdminDashboard = () => {
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => handleRejectProperty(property.id)}
+                                  onClick={() => openRejectionDialog(property)}
                                 >
                                   <XCircle className="w-4 h-4 mr-2" />
                                   Reject
@@ -1366,6 +1391,92 @@ const AdminDashboard = () => {
                       </Button>
                     </div>
                   </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Rejected Properties */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <XCircle className="w-5 h-5 text-red-500" />
+                    Rejected Properties
+                    {rejectedProperties.length > 0 && (
+                      <Badge variant="destructive" className="ml-2">
+                        {rejectedProperties.length}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm">
+                      <Filter className="w-4 h-4 mr-2" />
+                      Filter
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {rejectedProperties.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="w-8 h-8 text-green-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">No rejected properties</h3>
+                    <p className="text-muted-foreground">All property submissions have been approved or are pending review</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {rejectedProperties.map((property) => (
+                      <div key={property.id} className="p-6 border border-red-200 dark:border-red-800 rounded-xl bg-red-50 dark:bg-red-900/10 shadow-sm">
+                        <div className="flex items-start gap-4">
+                          <img
+                            src={property.images[0]?.url || '/placeholder.svg'}
+                            alt={property.title}
+                            className="w-20 h-20 object-cover rounded-lg flex-shrink-0 border border-red-200 dark:border-red-700"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <h3 className="font-semibold text-lg mb-1">{property.title}</h3>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                  <MapPin className="w-4 h-4" />
+                                  {property.location.city}, {property.location.state}
+                                </div>
+                                <div className="flex items-center gap-4 text-sm mb-2">
+                                  <span className="font-semibold text-lg text-green-600">
+                                    {property.currency} {property.price.toLocaleString()}
+                                  </span>
+                                  <Badge variant="destructive">Rejected</Badge>
+                                </div>
+                                {property.rejectionReason && (
+                                  <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+                                    <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">Rejection Reason:</p>
+                                    <p className="text-sm text-red-700 dark:text-red-300">{property.rejectionReason}</p>
+                                  </div>
+                                )}
+                                {property.rejectedAt && (
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Rejected on {new Date(property.rejectedAt).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApproveProperty(property.id)}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Approve
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1823,6 +1934,15 @@ const AdminDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Property Rejection Dialog */}
+      <PropertyRejectionDialog
+        property={rejectionDialog.property}
+        open={rejectionDialog.open}
+        onOpenChange={(open) => setRejectionDialog({ open, property: open ? rejectionDialog.property : null })}
+        onReject={handleRejectProperty}
+        isLoading={isActionLoading}
+      />
     </main>
   );
 };

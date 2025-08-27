@@ -65,8 +65,15 @@ export const PropertyProvider: React.FC<PropertyProviderProps> = ({ children }) 
         console.log('📋 Properties by status:', {
           pending: fetchedProperties.filter(p => p.status === 'pending').length,
           published: fetchedProperties.filter(p => p.status === 'published').length,
+          rejected: fetchedProperties.filter(p => p.status === 'rejected').length,
           draft: fetchedProperties.filter(p => p.status === 'draft').length,
         });
+        console.log('📋 All properties with status:', fetchedProperties.map(p => ({
+          id: p.id,
+          title: p.title,
+          status: p.status,
+          rejectionReason: p.rejectionReason
+        })));
         console.log('📋 Properties by category:', {
           sale: fetchedProperties.filter(p => p.category === 'sale').length,
           rent: fetchedProperties.filter(p => p.category === 'rent').length,
@@ -89,7 +96,7 @@ export const PropertyProvider: React.FC<PropertyProviderProps> = ({ children }) 
     };
 
     loadProperties();
-  }, []); // Load properties once on mount
+  }, [user]); // Load properties when user changes
 
   const addProperty = async (
     propertyData: PropertyFormData,
@@ -154,16 +161,16 @@ export const PropertyProvider: React.FC<PropertyProviderProps> = ({ children }) 
     }
   };
 
-  const rejectProperty = async (id: string): Promise<boolean> => {
+  const rejectProperty = async (id: string, rejectionReason?: string): Promise<boolean> => {
     if (!user || user.role !== 'admin') return false;
 
     setIsLoading(true);
 
-    const result = await propertyService.rejectProperty(id);
+    const result = await propertyService.rejectProperty(id, rejectionReason);
 
     if (result.success) {
-      // Refresh properties list
-      const updatedProperties = await propertyService.getPublishedProperties();
+      // Refresh properties list - admin sees all properties
+      const updatedProperties = await propertyService.getAllProperties();
       setProperties(updatedProperties);
       setIsLoading(false);
       return true;
@@ -195,6 +202,17 @@ export const PropertyProvider: React.FC<PropertyProviderProps> = ({ children }) 
 
   const getProperty = (id: string): Property | undefined => {
     return properties.find(property => property.id === id);
+  };
+
+  const getRejectedProperties = async (): Promise<Property[]> => {
+    if (!user || user.role !== 'admin') return [];
+
+    try {
+      return await propertyService.getRejectedProperties();
+    } catch (error) {
+      console.error('Error fetching rejected properties:', error);
+      return [];
+    }
   };
 
   const searchProperties = (filters: PropertySearchFilters): Property[] => {
@@ -287,6 +305,7 @@ export const PropertyProvider: React.FC<PropertyProviderProps> = ({ children }) 
     rejectProperty,
     deleteProperty,
     getProperty,
+    getRejectedProperties,
     searchProperties,
     refreshProperties,
     isLoading,

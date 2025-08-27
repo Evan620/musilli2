@@ -54,6 +54,10 @@ export interface Property {
   views: number;
   inquiries: number;
   isFeatured: boolean;
+  // Rejection fields
+  rejectionReason?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
 }
 
 export type PropertyType = 'house' | 'apartment' | 'land' | 'commercial' | 'airbnb';
@@ -217,9 +221,10 @@ export interface PropertyContextType {
   ) => Promise<boolean>;
   updateProperty: (id: string, property: Partial<PropertyFormData>) => Promise<boolean>;
   approveProperty: (id: string) => Promise<boolean>;
-  rejectProperty: (id: string) => Promise<boolean>;
+  rejectProperty: (id: string, rejectionReason?: string) => Promise<boolean>;
   deleteProperty: (id: string) => Promise<boolean>;
   getProperty: (id: string) => Property | undefined;
+  getRejectedProperties: () => Promise<Property[]>;
   searchProperties: (filters: PropertySearchFilters) => Property[];
   refreshProperties: () => Promise<void>;
   isLoading: boolean;

@@ -7,6 +7,7 @@ import { AuthProvider, ProtectedRoute } from "@/contexts/AuthContext";
 import { PropertyProvider } from "@/contexts/PropertyContext";
 import { ProviderProvider } from "@/contexts/ProviderContext";
 import { AdminProvider } from "@/contexts/AdminContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -38,8 +39,9 @@ const App = () => (
         <PropertyProvider>
           <ProviderProvider>
             <AdminProvider>
-              <Toaster />
-              <Sonner />
+              <NotificationProvider>
+                <Toaster />
+                <Sonner />
               <BrowserRouter
                 future={{
                   v7_startTransition: true,
@@ -48,6 +50,7 @@ const App = () => (
               >
                 <SiteLayout />
               </BrowserRouter>
+              </NotificationProvider>
             </AdminProvider>
           </ProviderProvider>
         </PropertyProvider>

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProperties } from "@/contexts/PropertyContext";
 import { propertyService } from "@/lib/supabase-properties";
+import { NotificationBell } from "@/components/provider/NotificationBell";
 import { Property, ProviderStats } from "@/types";
 import {
   Plus,
@@ -19,7 +20,10 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  DollarSign
+  DollarSign,
+  CheckCircle,
+  XCircle,
+  Clock
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -60,6 +64,8 @@ const ProviderDashboard = () => {
   const stats = useMemo(() => {
     const activeListings = providerProperties.filter(p => p.status === 'published').length;
     const pendingListings = providerProperties.filter(p => p.status === 'pending').length;
+    const rejectedListings = providerProperties.filter(p => p.status === 'rejected').length;
+    const draftListings = providerProperties.filter(p => p.status === 'draft').length;
     const totalViews = providerProperties.reduce((sum, p) => sum + p.views, 0);
     const totalInquiries = providerProperties.reduce((sum, p) => sum + p.inquiries, 0);
 
@@ -67,6 +73,8 @@ const ProviderDashboard = () => {
       totalListings: providerProperties.length,
       activeListings,
       pendingListings,
+      rejectedListings,
+      draftListings,
       totalViews,
       totalInquiries,
       newInquiries: Math.floor(totalInquiries * 0.3), // Mock: 30% are new
@@ -94,6 +102,28 @@ const ProviderDashboard = () => {
     }
   };
 
+  const handleResubmitProperty = async (propertyId: string) => {
+    if (window.confirm('Are you sure you want to resubmit this property for review? This will change its status to pending.')) {
+      try {
+        // Update property status to pending for resubmission
+        const result = await propertyService.updateProperty(propertyId, { status: 'pending' });
+        if (result.success) {
+          // Refresh the properties list
+          const updatedProperties = await propertyService.getProviderProperties();
+          setProviderProperties(updatedProperties);
+
+          // Show success message
+          alert('Property resubmitted successfully! It will be reviewed by our admin team.');
+        } else {
+          alert('Failed to resubmit property. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error resubmitting property:', error);
+        alert('An error occurred while resubmitting the property.');
+      }
+    }
+  };
+
   const getStatusBadge = (status: Property['status']) => {
     const variants = {
       published: 'default',
@@ -115,6 +145,19 @@ const ProviderDashboard = () => {
     return <div>Please log in to access your dashboard.</div>;
   }
 
+  // Only providers should access this dashboard
+  if (user.role !== 'provider') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Home className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p>This dashboard is only available to property providers.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="container mx-auto py-6 sm:py-10 px-4 sm:px-6">
       <header className="mb-8 space-y-4">
@@ -123,18 +166,21 @@ const ProviderDashboard = () => {
             <h1 className="text-2xl sm:text-3xl font-semibold text-gradient">Provider Dashboard</h1>
             <p className="text-muted-foreground text-sm sm:text-base">Welcome back, {user.name}! Manage your listings and track performance.</p>
           </div>
-          <Button
-            onClick={handleAddProperty}
-            className="shadow-lg hover:shadow-xl transition-shadow w-full sm:w-auto"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Property
-          </Button>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <Button
+              onClick={handleAddProperty}
+              className="shadow-lg hover:shadow-xl transition-shadow w-full sm:w-auto"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Property
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Stats Overview */}
-      <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
         <Card className="brutal-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Listings</CardTitle>
@@ -143,7 +189,46 @@ const ProviderDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalListings}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.activeListings} active, {stats.pendingListings} pending
+              All property listings
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="brutal-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.activeListings}</div>
+            <p className="text-xs text-muted-foreground">
+              Published properties
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="brutal-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{stats.pendingListings}</div>
+            <p className="text-xs text-muted-foreground">
+              Awaiting approval
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="brutal-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+            <XCircle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{stats.rejectedListings}</div>
+            <p className="text-xs text-muted-foreground">
+              Need attention
             </p>
           </CardContent>
         </Card>
@@ -232,6 +317,23 @@ const ProviderDashboard = () => {
                                   {property.currency} {property.price.toLocaleString()}
                                 </span>
                               </div>
+
+                              {/* Rejection Reason Display */}
+                              {property.status === 'rejected' && property.rejectionReason && (
+                                <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+                                  <p className="text-xs font-medium text-red-800 dark:text-red-200 mb-1">
+                                    Rejection Reason:
+                                  </p>
+                                  <p className="text-xs text-red-700 dark:text-red-300">
+                                    {property.rejectionReason}
+                                  </p>
+                                  {property.rejectedAt && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                      Rejected on {new Date(property.rejectedAt).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                             </div>
 
                             {/* Mobile-friendly dropdown */}
@@ -246,6 +348,15 @@ const ProviderDashboard = () => {
                                   <Edit className="w-4 h-4 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
+                                {property.status === 'rejected' && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleResubmitProperty(property.id)}
+                                    className="text-blue-600"
+                                  >
+                                    <TrendingUp className="w-4 h-4 mr-2" />
+                                    Resubmit for Review
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                   onClick={() => handleDeleteProperty(property.id)}
                                   className="text-red-600"

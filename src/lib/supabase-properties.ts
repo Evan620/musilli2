@@ -837,33 +837,93 @@ export const propertyService = {
     }
   },
 
-  async rejectProperty(propertyId: string): Promise<{ success: boolean; error?: string }> {
+  async rejectProperty(propertyId: string, rejectionReason?: string): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || user.user_metadata?.role !== 'admin') {
         return { success: false, error: 'Not authorized' }
       }
 
-      console.log('❌ Admin rejecting property:', propertyId)
+      console.log('❌ Admin rejecting property:', propertyId, 'Reason:', rejectionReason)
 
-      const { error } = await supabase
-        .from('properties')
-        .update({
-          status: 'rejected',
-          published_at: null
+      // Try to use the database function first (if migration has been run)
+      try {
+        const { data, error } = await supabase.rpc('reject_property_with_reason', {
+          p_property_id: propertyId,
+          p_admin_id: user.id,
+          p_rejection_reason: rejectionReason || null
         })
-        .eq('id', propertyId)
 
-      if (error) {
-        console.error('❌ Error rejecting property:', error)
-        return { success: false, error: error.message }
+        if (!error && data) {
+          console.log('✅ Property rejected with database function')
+          return { success: true }
+        }
+      } catch (funcError) {
+        console.log('⚠️ Database function not available, using fallback method')
       }
 
-      console.log('✅ Property rejected')
+      // Fallback method - direct update (works even without migration)
+      const updateData: any = {
+        status: 'rejected',
+        published_at: null,
+        updated_at: new Date().toISOString()
+      }
+
+      // Add rejection fields if they exist (after migration)
+      if (rejectionReason) {
+        updateData.rejection_reason = rejectionReason
+        updateData.rejected_at = new Date().toISOString()
+        updateData.rejected_by = user.id
+      }
+
+      const { error: updateError } = await supabase
+        .from('properties')
+        .update(updateData)
+        .eq('id', propertyId)
+
+      if (updateError) {
+        console.error('❌ Error rejecting property:', updateError)
+        return { success: false, error: updateError.message }
+      }
+
+      console.log('✅ Property rejected with fallback method')
       return { success: true }
     } catch (error) {
       console.error('❌ Exception rejecting property:', error)
       return { success: false, error: 'An unexpected error occurred' }
+    }
+  },
+
+  // Get rejected properties for admin
+  async getRejectedProperties(): Promise<Property[]> {
+    try {
+      console.log('🔍 Fetching rejected properties for admin...');
+
+      const { data, error } = await supabase
+        .from('properties')
+        .select(`
+          *,
+          property_locations(*),
+          property_features(*),
+          property_amenities(*),
+          property_utilities(*),
+          property_images(*),
+          providers(*),
+          rejected_by_profile:profiles!properties_rejected_by_fkey(*)
+        `)
+        .eq('status', 'rejected')
+        .order('rejected_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error fetching rejected properties:', error);
+        return [];
+      }
+
+      console.log('✅ Loaded', data?.length || 0, 'rejected properties');
+      return data?.map(this.transformPropertyData) || [];
+    } catch (error) {
+      console.error('Error fetching rejected properties:', error);
+      return [];
     }
   },
 
@@ -937,7 +997,11 @@ export const propertyService = {
       publishedAt: data.published_at ? new Date(data.published_at) : undefined,
       views: data.views || 0,
       inquiries: data.inquiries || 0,
-      isFeatured: data.is_featured || false
+      isFeatured: data.is_featured || false,
+      // Rejection fields (may not exist if migration hasn't been run)
+      rejectionReason: data.rejection_reason || undefined,
+      rejectedAt: data.rejected_at ? new Date(data.rejected_at) : undefined,
+      rejectedBy: data.rejected_by || undefined
     }
   }
 }
