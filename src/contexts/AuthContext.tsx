@@ -19,6 +19,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Simple user creation from auth user - NO DATABASE QUERIES
   const createUserFromAuth = (authUser: any): User => {
@@ -35,50 +36,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   };
 
-  // Initialize auth on mount
+  // Initialize auth on mount - OPTIMIZED FOR SEAMLESS REFRESH
   useEffect(() => {
     let mounted = true;
 
-    const initAuth = async () => {
-      try {
-        // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (mounted) {
-          if (session?.user) {
-            setUser(createUserFromAuth(session.user));
-          }
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Auth init error:', error);
-        if (mounted) {
-          setUser(null);
-          setIsLoading(false);
-        }
-      }
-    };
-
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          setUser(createUserFromAuth(session.user));
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+        setIsInitialized(true);
+      } else if (event === 'SIGNED_IN' && session?.user) {
         setUser(createUserFromAuth(session.user));
+        if (isInitialized) setIsLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        if (isInitialized) setIsLoading(false);
       }
-
-      setIsLoading(false);
     });
 
-    initAuth();
+    // The auth state listener will handle initialization
+    // No need for separate initAuth function
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isInitialized]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -154,8 +144,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
       </div>
     );
   }

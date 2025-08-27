@@ -22,10 +22,10 @@ export const DashboardRedirect: React.FC = () => {
 
   // Show loading state while determining redirect
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
-        <p>Redirecting to your dashboard...</p>
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600 mx-auto mb-2"></div>
+        <p className="text-gray-600 text-sm">Redirecting...</p>
       </div>
     </div>
   );

@@ -25,7 +25,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 const SiteHeader = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const isAuthenticated = !!user;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -345,7 +345,12 @@ const SiteHeader = () => {
         
         {/* Desktop Auth Buttons */}
         <div className="hidden lg:flex items-center gap-2">
-          {!isAuthenticated ? (
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-16 h-8 bg-gray-100 rounded animate-pulse"></div>
+              <div className="w-20 h-8 bg-gray-100 rounded animate-pulse"></div>
+            </div>
+          ) : !isAuthenticated ? (
             <div className="flex items-center gap-2">
               <Link to="/login" className="text-gray-700 hover:text-red-600 px-3 py-2 text-sm font-medium">
                 Sign In
@@ -660,7 +665,18 @@ const SiteHeader = () => {
 
               {/* Auth Section */}
               <div className="border-t pt-4">
-                {!isAuthenticated ? (
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      <div className="w-5 h-5 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      <div className="w-5 h-5 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                ) : !isAuthenticated ? (
                   <div className="space-y-2">
                     <Link
                       to="/login"
@@ -763,7 +779,12 @@ const SiteHeader = () => {
             <Users className="w-4 h-4" />
             Agents
           </Link>
-          {!isAuthenticated ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center gap-1 px-2 py-2 text-xs font-medium text-gray-600">
+              <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-8 h-2 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          ) : !isAuthenticated ? (
             <Link
               to="/login"
               className="flex flex-col items-center gap-1 px-2 py-2 text-xs font-medium text-gray-600 hover:text-gray-900"

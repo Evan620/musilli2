@@ -9,15 +9,14 @@ export const PageTransition = ({ children, className = '' }: PageTransitionProps
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Small delay to trigger the fade-in animation
-    const timer = setTimeout(() => setIsVisible(true), 50);
-    return () => clearTimeout(timer);
+    // Immediate visibility for seamless refresh
+    setIsVisible(true);
   }, []);
 
   return (
-    <div 
-      className={`transition-all duration-300 ease-out ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+    <div
+      className={`transition-opacity duration-150 ease-out ${
+        isVisible ? 'opacity-100' : 'opacity-0'
       } ${className}`}
     >
       {children}
