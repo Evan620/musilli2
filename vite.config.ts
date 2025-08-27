@@ -21,6 +21,6 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     // Suppress React DevTools warning in production
-    __REACT_DEVTOOLS_GLOBAL_HOOK__: mode === 'production' ? '({ isDisabled: true })' : undefined,
+    __REACT_DEVTOOLS_GLOBAL_HOOK__: mode === 'production' ? '{ isDisabled: true }' : 'undefined',
   },
 }));
