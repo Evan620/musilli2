@@ -109,13 +109,13 @@ const SiteHeader = () => {
                         Professional house plans & blueprints
                       </p>
                     </Link>
-                    <Link to="/properties-for-sale?type=commercial" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                    <Link to="/commercial" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
                       <div className="text-sm font-medium leading-none flex items-center gap-2">
                         <Building2 className="w-4 h-4" />
                         Commercial Properties
                       </div>
                       <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        Office buildings and retail spaces
+                        Office buildings, retail spaces, and warehouses
                       </p>
                     </Link>
                     <Link to="/properties-for-sale" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
@@ -457,14 +457,14 @@ const SiteHeader = () => {
                     </div>
                   </Link>
                   <Link
-                    to="/properties-for-sale?type=commercial"
+                    to="/commercial"
                     className="flex items-center gap-3 px-3 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
                     onClick={closeMobileMenu}
                   >
                     <Building2 className="w-5 h-5" />
                     <div>
                       <div className="font-medium">Commercial Properties</div>
-                      <div className="text-sm text-gray-500">Office buildings and retail spaces</div>
+                      <div className="text-sm text-gray-500">Office buildings, retail spaces, and warehouses</div>
                     </div>
                   </Link>
                   <Link

@@ -15,6 +15,7 @@ import Rentals from "./pages/Rentals";
 import PropertiesForSale from "./pages/PropertiesForSale";
 import Land from "./pages/Land";
 import Drawings from "./pages/Drawings";
+import Commercial from "./pages/Commercial";
 import AdvancedSearch from "./pages/AdvancedSearch";
 import PropertyDetails from "./pages/PropertyDetails";
 import Register from "./pages/Register";
@@ -70,6 +71,7 @@ const SiteLayout = () => {
           <Route path="/properties-for-sale" element={<PropertiesForSale />} />
           <Route path="/land" element={<Land />} />
           <Route path="/drawings" element={<Drawings />} />
+          <Route path="/commercial" element={<Commercial />} />
           <Route path="/advanced-search" element={<AdvancedSearch />} />
           <Route path="/property/:id" element={<PropertyDetails />} />
           <Route path="/register" element={<Register />} />

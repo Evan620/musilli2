@@ -10,6 +10,9 @@ import { useProviders } from "@/contexts/ProviderContext";
 import { useAdmin } from "@/contexts/AdminContext";
 import { propertyService } from "@/lib/supabase-properties";
 import { PropertyRejectionDialog } from "@/components/admin/PropertyRejectionDialog";
+import { LandManagement } from "@/components/admin/LandManagement";
+import PlansManagement from "@/components/admin/PlansManagement";
+import CommercialManagement from "@/components/admin/CommercialManagement";
 import { toast } from "@/hooks/use-toast";
 import { AdminStats, Property, User } from "@/types";
 import { analyticsService, GrowthMetrics } from "@/lib/supabase-analytics";
@@ -32,6 +35,8 @@ import {
   Calendar,
   MapPin,
   Phone,
+  TreePine,
+  RefreshCw,
   Mail,
   Star,
   ArrowUpRight,
@@ -39,7 +44,6 @@ import {
   Filter,
   Search,
   Download,
-  RefreshCw,
   UserCheck,
   UserX,
   Trash2,
@@ -120,8 +124,26 @@ const AdminDashboard = () => {
     pendingCount: pendingProperties.length,
     approvedCount: approvedProperties.length,
     rejectedCount: rejectedProperties.length,
-    allStatuses: properties.map(p => ({ id: p.id, title: p.title, status: p.status }))
+    allStatuses: properties.map(p => ({
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      providerId: p.providerId,
+      rejectionReason: p.rejectionReason
+    }))
   });
+
+  // Additional debug for rejected properties specifically
+  if (rejectedProperties.length > 0) {
+    console.log('🔍 AdminDashboard: Rejected properties details:', rejectedProperties.map(p => ({
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      rejectionReason: p.rejectionReason,
+      rejectedAt: p.rejectedAt,
+      rejectedBy: p.rejectedBy
+    })));
+  }
 
   // User management state
   const [searchQuery, setSearchQuery] = useState("");
@@ -393,6 +415,8 @@ const AdminDashboard = () => {
       property
     });
   };
+
+
 
   const handleApproveProvider = async (providerId: string) => {
     if (user?.id) {
@@ -761,7 +785,7 @@ const AdminDashboard = () => {
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-1">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto bg-transparent gap-1">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-9 h-auto bg-transparent gap-1">
               <TabsTrigger
                 value="overview"
                 className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 py-3 px-4 rounded-lg font-medium"
@@ -796,6 +820,34 @@ const AdminDashboard = () => {
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Analytics
+              </TabsTrigger>
+              <TabsTrigger
+                value="land"
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 py-3 px-4 rounded-lg font-medium"
+              >
+                <TreePine className="w-4 h-4 mr-2" />
+                Land
+              </TabsTrigger>
+              <TabsTrigger
+                value="plans"
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 py-3 px-4 rounded-lg font-medium"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Plans
+              </TabsTrigger>
+              <TabsTrigger
+                value="land"
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 py-3 px-4 rounded-lg font-medium"
+              >
+                <TreePine className="w-4 h-4 mr-2" />
+                Land
+              </TabsTrigger>
+              <TabsTrigger
+                value="commercial"
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 py-3 px-4 rounded-lg font-medium"
+              >
+                <Building2 className="w-4 h-4 mr-2" />
+                Commercial
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1224,6 +1276,10 @@ const AdminDashboard = () => {
                     )}
                   </CardTitle>
                   <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={refreshProperties}>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Refresh
+                    </Button>
                     <Button variant="outline" size="sm">
                       <Filter className="w-4 h-4 mr-2" />
                       Filter
@@ -1836,6 +1892,21 @@ const AdminDashboard = () => {
                 </Card>
               </>
             )}
+          </TabsContent>
+
+          {/* Land Management Tab */}
+          <TabsContent value="land" className="space-y-6">
+            <LandManagement />
+          </TabsContent>
+
+          {/* Plans Management Tab */}
+          <TabsContent value="plans" className="space-y-6">
+            <PlansManagement />
+          </TabsContent>
+
+          {/* Commercial Management Tab */}
+          <TabsContent value="commercial" className="space-y-6">
+            <CommercialManagement />
           </TabsContent>
         </Tabs>
       </div>

@@ -2,15 +2,10 @@ import { useState } from 'react';
 import { X, CreditCard, Download, Shield, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from './button';
 import { Input } from './input';
+import { ArchitecturalPlan } from '@/types';
 
 interface PlanPurchaseModalProps {
-  plan: {
-    id: string;
-    title: string;
-    price: number;
-    currency: string;
-    category: string;
-  };
+  plan: ArchitecturalPlan;
   onClose: () => void;
   onSuccess: (planId: string) => void;
 }

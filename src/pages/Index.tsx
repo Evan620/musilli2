@@ -17,7 +17,9 @@ import { PropertyValuationCalculator } from "@/components/ui/property-valuation-
 import { InteractiveTimeline } from "@/components/ui/interactive-timeline";
 import { PlanPreviewModal } from "@/components/ui/plan-preview-modal";
 import { PlanPurchaseModal } from "@/components/ui/plan-purchase-modal";
-import { useState } from "react";
+import { planService } from "@/lib/supabase-plans";
+import { ArchitecturalPlan } from "@/types";
+import { useState, useEffect } from "react";
 
 const Index = () => {
   const { properties } = useProperties();
@@ -87,81 +89,62 @@ const Index = () => {
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorPrice, setCalculatorPrice] = useState(500000);
   const [showValuationCalculator, setShowValuationCalculator] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [selectedPlan, setSelectedPlan] = useState<ArchitecturalPlan | null>(null);
   const [showPlanPreview, setShowPlanPreview] = useState(false);
   const [showPlanPurchase, setShowPlanPurchase] = useState(false);
-  const [planToPurchase, setPlanToPurchase] = useState<any>(null);
+  const [planToPurchase, setPlanToPurchase] = useState<ArchitecturalPlan | null>(null);
+  const [featuredPlans, setFeaturedPlans] = useState<ArchitecturalPlan[]>([]);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(false);
 
-  // Architectural plans data
-  const architecturalPlans = [
-    {
-      id: "1",
-      title: "Minimalist 3-Bedroom Villa",
-      image: "/api/placeholder/300/200",
-      category: "Villa",
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 2500,
-      areaUnit: "sqft",
-      price: 150000,
-      currency: "KSH",
-      description: "Modern minimalist design with open-plan living and large windows. Perfect for contemporary families seeking clean lines and functional spaces.",
-      features: ["Open Plan Living", "Large Windows", "Modern Kitchen", "Master Suite", "Walk-in Closet", "Covered Patio"],
-      isFeatured: true,
-      downloads: 234
-    },
-    {
-      id: "2",
-      title: "Urban Duplex Concept",
-      image: "/api/placeholder/300/200",
-      category: "Duplex",
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 3200,
-      areaUnit: "sqft",
-      price: 200000,
-      currency: "KSH",
-      description: "Two-story duplex perfect for urban living with rooftop terrace. Maximizes space efficiency while maintaining comfort and style.",
-      features: ["Two Stories", "Rooftop Terrace", "Urban Design", "Efficient Layout", "Modern Finishes", "Parking Space"],
-      isFeatured: false,
-      downloads: 156
-    },
-    {
-      id: "3",
-      title: "Eco-Friendly Cottage",
-      image: "/api/placeholder/300/200",
-      category: "Cottage",
-      bedrooms: 2,
-      bathrooms: 1,
-      area: 1200,
-      areaUnit: "sqft",
-      price: 80000,
-      currency: "KSH",
-      description: "Sustainable design with solar panels and rainwater harvesting. Built with eco-friendly materials and energy-efficient systems.",
-      features: ["Solar Panels", "Rainwater Harvesting", "Eco Materials", "Energy Efficient", "Natural Lighting", "Garden Space"],
-      isFeatured: true,
-      downloads: 189
+  // Load featured architectural plans
+  const loadFeaturedPlans = async () => {
+    setIsLoadingPlans(true);
+    try {
+      console.log('🏗️ Loading featured architectural plans...');
+      const allPlans = await planService.getPublishedPlans();
+      // Get featured plans first, then top 6 by popularity
+      const featured = allPlans
+        .filter(plan => plan.isFeatured)
+        .slice(0, 3);
+
+      const popular = allPlans
+        .filter(plan => !plan.isFeatured)
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 3);
+
+      setFeaturedPlans([...featured, ...popular].slice(0, 6));
+      console.log('✅ Featured plans loaded:', featured.length + popular.length);
+    } catch (error) {
+      console.error('❌ Error loading featured plans:', error);
+      setFeaturedPlans([]);
+    } finally {
+      setIsLoadingPlans(false);
     }
-  ];
-
-  // Handler functions for architectural plans
-  const handlePlanPreview = (plan: any) => {
-    setSelectedPlan(plan);
-    setShowPlanPreview(true);
   };
 
-  const handlePlanPurchase = (plan: any) => {
+  useEffect(() => {
+    loadFeaturedPlans();
+  }, []);
+
+  // Plan handlers
+  const handlePlanPreview = (plan: ArchitecturalPlan) => {
+    setSelectedPlan(plan);
+    setShowPlanPreview(true);
+    planService.trackPlanView(plan.id);
+  };
+
+  const handlePlanPurchase = (plan: ArchitecturalPlan) => {
     setPlanToPurchase(plan);
     setShowPlanPurchase(true);
     setShowPlanPreview(false);
   };
 
-  const handlePurchaseSuccess = (planId: string) => {
+  const handlePurchaseSuccess = () => {
     setShowPlanPurchase(false);
     setPlanToPurchase(null);
-    // Here you could add success notification or redirect to download page
-    alert(`Successfully purchased plan! Download links sent to your email.`);
+    loadFeaturedPlans(); // Refresh to update download counts
   };
+
 
   const closePlanModals = () => {
     setShowPlanPreview(false);
@@ -304,6 +287,11 @@ const Index = () => {
                 <Link to="/drawings" className="flex-1 sm:flex-none">
                   <button className="text-white px-3 sm:px-6 py-2 text-sm sm:text-base font-medium hover:opacity-90 transition-opacity w-full" style={{backgroundColor: 'hsl(280, 60%, 50%)'}}>
                     PLANS
+                  </button>
+                </Link>
+                <Link to="/commercial" className="flex-1 sm:flex-none">
+                  <button className="text-white px-3 sm:px-6 py-2 text-sm sm:text-base font-medium hover:opacity-90 transition-opacity w-full" style={{backgroundColor: 'hsl(220, 60%, 50%)'}}>
+                    COMMERCIAL
                   </button>
                 </Link>
                 <button
@@ -778,14 +766,44 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {architecturalPlans.map((plan) => (
+            {isLoadingPlans ? (
+              // Loading state
+              Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="bg-gray-50 rounded-xl p-6 shadow-lg animate-pulse">
+                  <div className="bg-gray-300 w-full h-48 rounded-lg mb-4"></div>
+                  <div className="bg-gray-300 h-6 rounded mb-2"></div>
+                  <div className="bg-gray-300 h-4 rounded mb-4"></div>
+                  <div className="flex gap-2 mb-4">
+                    <div className="bg-gray-300 h-4 w-12 rounded"></div>
+                    <div className="bg-gray-300 h-4 w-12 rounded"></div>
+                    <div className="bg-gray-300 h-4 w-16 rounded"></div>
+                  </div>
+                  <div className="bg-gray-300 h-10 rounded"></div>
+                </div>
+              ))
+            ) : featuredPlans.length === 0 ? (
+              // No plans state
+              <div className="col-span-full text-center py-12">
+                <Home className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Plans Available</h3>
+                <p className="text-gray-500">Check back later for new architectural plans.</p>
+              </div>
+            ) : (
+              featuredPlans.map((plan) => (
               <div key={plan.id} className="bg-gray-50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                 <div className="relative mb-4">
-                  <img
-                    src={plan.image}
-                    alt={`${plan.title} Plan`}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
+                  {plan.files && plan.files.length > 0 ? (
+                    <img
+                      src={plan.files.find(f => f.isPrimary)?.fileUrl || plan.files[0]?.fileUrl || '/api/placeholder/300/200'}
+                      alt={`${plan.title} Plan`}
+                      className="w-full h-48 object-cover rounded-lg"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
+                      <Home className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
                   {plan.isFeatured && (
                     <div className="absolute top-3 right-3">
                       <span className="bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
@@ -842,9 +860,8 @@ const Index = () => {
                   </Button>
                 </div>
               </div>
-            ))}
-
-
+            ))
+            )}
           </div>
 
           {/* Features Section */}

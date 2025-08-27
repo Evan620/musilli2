@@ -505,6 +505,39 @@ export const propertyService = {
         }
       }
 
+      // If this is a land property, create basic land_details record
+      if (propertyData.type === 'land') {
+        try {
+          console.log('🏞️ Creating basic land details for land property...');
+          const { error: landError } = await supabase
+            .from('land_details')
+            .insert({
+              property_id: property.id,
+              // Set basic defaults - can be updated later
+              title_deed_available: false,
+              survey_done: false,
+              land_use_permit: false,
+              electricity_available: false,
+              water_connection_available: false,
+              sewer_connection_available: false,
+              internet_coverage: false,
+              subdivision_potential: false,
+              agricultural_potential: false,
+              irrigation_available: false
+            });
+
+          if (landError) {
+            console.log('⚠️ Could not create land details (table may not exist yet):', landError.message);
+            // Don't fail the entire property creation if land_details fails
+          } else {
+            console.log('✅ Basic land details created');
+          }
+        } catch (landDetailsError) {
+          console.log('⚠️ Land details creation failed (migration may not be run):', landDetailsError);
+          // Continue without failing
+        }
+      }
+
       return { success: true, propertyId: property.id }
     } catch (error) {
       console.error('Error creating property:', error)

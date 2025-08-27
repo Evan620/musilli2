@@ -1,26 +1,12 @@
 import { useState } from 'react';
-import { X, Download, Eye, Bed, Bath, Ruler, Star, Share2, Heart, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import { X, Download, Eye, Bed, Bath, Ruler, Star, Share2, Heart, ZoomIn, ZoomOut, RotateCw, Home } from 'lucide-react';
 import { Button } from './button';
+import { ArchitecturalPlan } from '@/types';
 
 interface PlanPreviewModalProps {
-  plan: {
-    id: string;
-    title: string;
-    price: number;
-    currency: string;
-    category: string;
-    image: string;
-    description: string;
-    bedrooms: number;
-    bathrooms: number;
-    area: number;
-    areaUnit: string;
-    features: string[];
-    downloads: number;
-    isFeatured?: boolean;
-  };
+  plan: ArchitecturalPlan;
   onClose: () => void;
-  onPurchase: (plan: any) => void;
+  onPurchase: (plan: ArchitecturalPlan) => void;
 }
 
 export const PlanPreviewModal = ({ plan, onClose, onPurchase }: PlanPreviewModalProps) => {
@@ -29,20 +15,34 @@ export const PlanPreviewModal = ({ plan, onClose, onPurchase }: PlanPreviewModal
   const [rotation, setRotation] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
 
+  // Get different file types or fallback to primary image
+  const getImageForType = (fileType: string) => {
+    if (plan.files && plan.files.length > 0) {
+      const specificFile = plan.files.find(f => f.fileType === fileType);
+      if (specificFile) return specificFile.fileUrl;
+
+      const primaryFile = plan.files.find(f => f.isPrimary);
+      if (primaryFile) return primaryFile.fileUrl;
+
+      return plan.files[0].fileUrl;
+    }
+    return '/api/placeholder/600/400';
+  };
+
   const planViews = {
     'floor-plan': {
       title: 'Floor Plan',
-      image: plan.image,
+      image: getImageForType('floor_plan'),
       description: 'Detailed floor plan with room layouts and dimensions'
     },
     '3d-render': {
       title: '3D Render',
-      image: '/api/placeholder/600/400',
+      image: getImageForType('3d_render'),
       description: 'Photorealistic 3D visualization of the completed home'
     },
     'elevation': {
       title: 'Elevation Views',
-      image: '/api/placeholder/600/400',
+      image: getImageForType('elevation'),
       description: 'Front, side, and rear elevation drawings'
     }
   };
