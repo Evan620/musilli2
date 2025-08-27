@@ -38,18 +38,16 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false, // Disable URL session detection to prevent hanging
+    detectSessionInUrl: true, // Enable URL session detection for proper auth flow
     flowType: 'pkce', // Use PKCE flow for better security and reliability
     storage: customStorage,
-    storageKey: 'sb-musilli-auth',
-    debug: false
+    storageKey: 'sb-auth-token', // Use standard storage key
+    debug: false // Disable debug logs for cleaner console
   },
   global: {
     headers: {
       'x-client-info': 'musilli-homes@1.0.0'
     }
-    // Removed custom fetch to avoid AbortError issues
-    // Let Supabase handle its own timeouts and retries
   },
   db: {
     schema: 'public'

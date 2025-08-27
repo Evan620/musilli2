@@ -6,15 +6,9 @@ export interface User {
   phone?: string;
   role: UserRole;
   status: UserStatus;
+  avatar?: string | null;
   createdAt: Date;
   updatedAt: Date;
-  avatar?: string; // For Google profile pictures
-  // Enhanced user management fields
-  lastLoginAt?: Date;
-  loginCount?: number;
-  suspensionReason?: string;
-  suspendedAt?: Date;
-  notes?: string;
 }
 
 export type UserRole = 'admin' | 'provider' | 'user';
@@ -210,12 +204,9 @@ export interface PropertySearchFilters {
 // Context types
 export interface AuthContextType {
   user: User | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  isLoading: boolean;
-  isLoggingOut: boolean;
-  sessionError?: string | null;
-  recoverSession?: () => Promise<void>;
 }
 
 export interface PropertyContextType {

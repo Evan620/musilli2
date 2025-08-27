@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Property, PropertyFormData, PropertySearchFilters, PropertyContextType } from '@/types';
-import { useAuthSafe } from './AuthContext';
 import { propertyService } from '@/lib/supabase-properties';
 
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
@@ -16,9 +15,8 @@ export const PropertyProvider: React.FC<PropertyProviderProps> = ({ children }) 
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Use safe auth hook that won't break public pages
-  const authContext = useAuthSafe();
-  const user = authContext?.user || null;
+  // For now, just assume no user (public mode) - we'll fix this later
+  const user = null;
 
   // Function to refresh properties data
   const refreshProperties = async () => {
@@ -91,7 +89,7 @@ export const PropertyProvider: React.FC<PropertyProviderProps> = ({ children }) 
     };
 
     loadProperties();
-  }, [user?.role]); // Re-load when user role changes
+  }, []); // Load properties once on mount
 
   const addProperty = async (
     propertyData: PropertyFormData,

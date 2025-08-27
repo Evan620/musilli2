@@ -28,7 +28,6 @@ import DebugAuth from "./pages/DebugAuth";
 import Header from "./components/layout/SiteHeader";
 import Footer from "./components/layout/SiteFooter";
 import { DashboardRedirect } from "./components/DashboardRedirect";
-import { SessionErrorBanner } from "./components/SessionErrorBanner";
 
 const queryClient = new QueryClient();
 
@@ -61,7 +60,6 @@ const SiteLayout = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <SessionErrorBanner />
       <div className="flex-1 pb-16 lg:pb-0">{/* Add bottom padding for mobile navigation */}
         <Routes>
           <Route path="/" element={<Index />} />
