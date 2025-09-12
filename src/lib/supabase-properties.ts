@@ -847,23 +847,40 @@ export const propertyService = {
         return { success: false, error: 'Not authorized' }
       }
 
-      console.log('✅ Admin approving property:', propertyId)
+      console.log('✅ Admin approving property with notifications:', propertyId)
 
-      const { error } = await supabase
-        .from('properties')
-        .update({
-          status: 'published',
-          published_at: new Date().toISOString()
-        })
-        .eq('id', propertyId)
+      // Use the enhanced function that includes notifications
+      const { data, error } = await supabase.rpc('approve_property_with_notification', {
+        p_property_id: propertyId,
+        p_admin_id: user.id
+      });
 
       if (error) {
-        console.error('❌ Error approving property:', error)
-        return { success: false, error: error.message }
+        console.error('❌ Error with notification function, falling back:', error)
+        
+        // Fallback to basic approval if function doesn't exist
+        const { error: fallbackError } = await supabase
+          .from('properties')
+          .update({
+            status: 'published',
+            published_at: new Date().toISOString()
+          })
+          .eq('id', propertyId)
+
+        if (fallbackError) {
+          return { success: false, error: fallbackError.message }
+        }
+
+        console.log('✅ Property approved with fallback method')
+        return { success: true }
       }
 
-      console.log('✅ Property approved and published')
-      return { success: true }
+      if (data) {
+        console.log('✅ Property approved with notifications sent')
+        return { success: true }
+      } else {
+        return { success: false, error: 'Property not found' }
+      }
     } catch (error) {
       console.error('❌ Exception approving property:', error)
       return { success: false, error: 'An unexpected error occurred' }
@@ -877,50 +894,52 @@ export const propertyService = {
         return { success: false, error: 'Not authorized' }
       }
 
-      console.log('❌ Admin rejecting property:', propertyId, 'Reason:', rejectionReason)
+      console.log('❌ Admin rejecting property with notifications:', propertyId, 'Reason:', rejectionReason)
 
-      // Try to use the database function first (if migration has been run)
-      try {
-        const { data, error } = await supabase.rpc('reject_property_with_reason', {
-          p_property_id: propertyId,
-          p_admin_id: user.id,
-          p_rejection_reason: rejectionReason || null
-        })
+      // Use the enhanced function that includes notifications
+      const { data, error } = await supabase.rpc('reject_property_with_notification', {
+        p_property_id: propertyId,
+        p_admin_id: user.id,
+        p_rejection_reason: rejectionReason || 'No reason provided'
+      });
 
-        if (!error && data) {
-          console.log('✅ Property rejected with database function')
-          return { success: true }
+      if (error) {
+        console.error('❌ Error with notification function, falling back:', error)
+        
+        // Fallback method - direct update (works even without migration)
+        const updateData: any = {
+          status: 'rejected',
+          published_at: null,
+          updated_at: new Date().toISOString()
         }
-      } catch (funcError) {
-        console.log('⚠️ Database function not available, using fallback method')
+
+        // Add rejection fields if they exist (after migration)
+        if (rejectionReason) {
+          updateData.rejection_reason = rejectionReason
+          updateData.rejected_at = new Date().toISOString()
+          updateData.rejected_by = user.id
+        }
+
+        const { error: updateError } = await supabase
+          .from('properties')
+          .update(updateData)
+          .eq('id', propertyId)
+
+        if (updateError) {
+          console.error('❌ Error rejecting property:', updateError)
+          return { success: false, error: updateError.message }
+        }
+
+        console.log('✅ Property rejected with fallback method')
+        return { success: true }
       }
 
-      // Fallback method - direct update (works even without migration)
-      const updateData: any = {
-        status: 'rejected',
-        published_at: null,
-        updated_at: new Date().toISOString()
+      if (data) {
+        console.log('✅ Property rejected with notifications sent')
+        return { success: true }
+      } else {
+        return { success: false, error: 'Property not found' }
       }
-
-      // Add rejection fields if they exist (after migration)
-      if (rejectionReason) {
-        updateData.rejection_reason = rejectionReason
-        updateData.rejected_at = new Date().toISOString()
-        updateData.rejected_by = user.id
-      }
-
-      const { error: updateError } = await supabase
-        .from('properties')
-        .update(updateData)
-        .eq('id', propertyId)
-
-      if (updateError) {
-        console.error('❌ Error rejecting property:', updateError)
-        return { success: false, error: updateError.message }
-      }
-
-      console.log('✅ Property rejected with fallback method')
-      return { success: true }
     } catch (error) {
       console.error('❌ Exception rejecting property:', error)
       return { success: false, error: 'An unexpected error occurred' }

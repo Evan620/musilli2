@@ -10,6 +10,7 @@ import {
   ActionResult,
   DashboardAnalytics
 } from '@/lib/admin-api';
+import { adminRealtimeService } from '@/lib/admin-realtime';
 import { useAuth } from './AuthContext';
 
 interface AdminContextType {
@@ -293,28 +294,54 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     loadUsers(1, {});
   };
   
-  // Initialize data when admin user is available
+  // Initialize data and real-time subscriptions when admin user is available
   useEffect(() => {
     if (user && user.role === 'admin') {
+      console.log('🔄 AdminContext: Initializing admin dashboard for user:', user.id);
+      
+      // Load initial data
       Promise.all([
         loadUsers(),
         refreshStats(),
         refreshActivity(),
         refreshAnalytics()
       ]);
-    }
-  }, [user]);
-  
-  // Auto-refresh activity and analytics
-  useEffect(() => {
-    if (user && user.role === 'admin') {
-      const activityInterval = setInterval(refreshActivity, 30000); // Every 30 seconds
+
+      // Initialize real-time subscriptions
+      adminRealtimeService.initialize(user.id, {
+        onActivityUpdate: (activities) => {
+          console.log('📢 AdminContext: Received real-time activity update:', activities.length, 'items');
+          setActivityFeed(activities);
+        },
+        onNotificationUpdate: (notifications) => {
+          console.log('📢 AdminContext: Received real-time notification update:', notifications.length, 'items');
+          setNotifications(notifications);
+        },
+        onConnectionChange: (connected) => {
+          console.log('📡 AdminContext: Real-time connection status:', connected ? 'Connected' : 'Disconnected');
+          if (!connected) {
+            // Fallback to polling if real-time connection fails
+            console.log('🔄 AdminContext: Falling back to polling mode');
+            const fallbackInterval = setInterval(() => {
+              refreshActivity();
+            }, 30000);
+            
+            return () => clearInterval(fallbackInterval);
+          }
+        }
+      });
+
+      // Keep analytics on a slower refresh cycle (not real-time)
       const analyticsInterval = setInterval(refreshAnalytics, 60000); // Every minute
 
       return () => {
-        clearInterval(activityInterval);
+        console.log('🧹 AdminContext: Cleaning up admin subscriptions');
+        adminRealtimeService.cleanup();
         clearInterval(analyticsInterval);
       };
+    } else {
+      // Clean up if user is no longer admin
+      adminRealtimeService.cleanup();
     }
   }, [user]);
   

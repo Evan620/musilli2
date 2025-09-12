@@ -152,49 +152,70 @@ export const providerService = {
   // Approve a provider
   async approveProvider(providerId: string, adminId: string): Promise<boolean> {
     try {
-      // First get the provider to get the user_id
-      const { data: provider, error: fetchError } = await supabase
-        .from('providers')
-        .select('user_id')
-        .eq('id', providerId)
-        .single()
+      console.log('✅ Admin approving provider with notifications:', providerId)
 
-      if (fetchError || !provider) {
-        console.error('Error fetching provider:', fetchError)
-        return false
+      // Use the enhanced function that includes notifications
+      const { data, error } = await supabase.rpc('approve_provider_with_notification', {
+        p_provider_id: providerId,
+        p_admin_id: adminId
+      });
+
+      if (error) {
+        console.error('❌ Error with notification function, falling back:', error)
+        
+        // Fallback to basic approval if function doesn't exist
+        const { data: provider, error: fetchError } = await supabase
+          .from('providers')
+          .select('user_id')
+          .eq('id', providerId)
+          .single()
+
+        if (fetchError || !provider) {
+          console.error('Error fetching provider:', fetchError)
+          return false
+        }
+
+        // Update the profile status to approved
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            status: 'approved',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', provider.user_id)
+
+        if (profileError) {
+          console.error('Error updating profile status:', profileError)
+          return false
+        }
+
+        // Update the provider record
+        const { error: providerError } = await supabase
+          .from('providers')
+          .update({
+            approved_at: new Date().toISOString(),
+            approved_by: adminId,
+            subscription_status: 'active',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', providerId)
+
+        if (providerError) {
+          console.error('Error updating provider:', providerError)
+          return false
+        }
+
+        console.log('✅ Provider approved with fallback method')
+        return true
       }
 
-      // Update the profile status to approved
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          status: 'approved',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', provider.user_id)
-
-      if (profileError) {
-        console.error('Error updating profile status:', profileError)
+      if (data) {
+        console.log('✅ Provider approved with notifications sent')
+        return true
+      } else {
+        console.log('❌ Provider not found')
         return false
       }
-
-      // Update the provider record
-      const { error: providerError } = await supabase
-        .from('providers')
-        .update({
-          approved_at: new Date().toISOString(),
-          approved_by: adminId,
-          subscription_status: 'active',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', providerId)
-
-      if (providerError) {
-        console.error('Error updating provider:', providerError)
-        return false
-      }
-
-      return true
     } catch (error) {
       console.error('Error in approveProvider:', error)
       return false
@@ -204,48 +225,69 @@ export const providerService = {
   // Reject a provider
   async rejectProvider(providerId: string, adminId: string, reason?: string): Promise<boolean> {
     try {
-      // First get the provider to get the user_id
-      const { data: provider, error: fetchError } = await supabase
-        .from('providers')
-        .select('user_id')
-        .eq('id', providerId)
-        .single()
+      console.log('❌ Admin rejecting provider with notifications:', providerId, 'Reason:', reason)
 
-      if (fetchError || !provider) {
-        console.error('Error fetching provider:', fetchError)
-        return false
+      // Use the enhanced function that includes notifications
+      const { data, error } = await supabase.rpc('reject_provider_with_notification', {
+        p_provider_id: providerId,
+        p_admin_id: adminId,
+        p_rejection_reason: reason || 'No reason provided'
+      });
+
+      if (error) {
+        console.error('❌ Error with notification function, falling back:', error)
+        
+        // Fallback to basic rejection if function doesn't exist
+        const { data: provider, error: fetchError } = await supabase
+          .from('providers')
+          .select('user_id')
+          .eq('id', providerId)
+          .single()
+
+        if (fetchError || !provider) {
+          console.error('Error fetching provider:', fetchError)
+          return false
+        }
+
+        // Update the profile status to rejected
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            status: 'rejected',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', provider.user_id)
+
+        if (profileError) {
+          console.error('Error updating profile status:', profileError)
+          return false
+        }
+
+        // Update the provider record
+        const { error: providerError } = await supabase
+          .from('providers')
+          .update({
+            approved_by: adminId, // Track who made the decision
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', providerId)
+
+        if (providerError) {
+          console.error('Error updating provider:', providerError)
+          return false
+        }
+
+        console.log('✅ Provider rejected with fallback method')
+        return true
       }
 
-      // Update the profile status to rejected
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          status: 'rejected',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', provider.user_id)
-
-      if (profileError) {
-        console.error('Error updating profile status:', profileError)
+      if (data) {
+        console.log('✅ Provider rejected with notifications sent')
+        return true
+      } else {
+        console.log('❌ Provider not found')
         return false
       }
-
-      // Note: We could add a rejection_reason field to the providers table if needed
-      // For now, we'll just track who rejected and when
-      const { error: providerError } = await supabase
-        .from('providers')
-        .update({
-          approved_by: adminId, // Track who made the decision
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', providerId)
-
-      if (providerError) {
-        console.error('Error updating provider:', providerError)
-        return false
-      }
-
-      return true
     } catch (error) {
       console.error('Error in rejectProvider:', error)
       return false

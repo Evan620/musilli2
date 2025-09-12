@@ -9,6 +9,7 @@ import {
   Home, DollarSign, Ruler, Shield, CheckCircle
 } from 'lucide-react';
 import { useProperties } from "@/contexts/PropertyContext";
+import { analyticsService } from "@/lib/analytics-service";
 
 const PropertyDetails = () => {
   const { id } = useParams<{ id: string }>();

@@ -243,32 +243,49 @@ export const adminAPI = {
     adminId: string
   ): Promise<ActionResult> {
     try {
-      console.log('🚫 suspendUser: Suspending user with basic update...');
+      console.log('🚫 suspendUser: Suspending user with activity logging...');
 
-      // Simple update instead of RPC call
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          status: 'suspended',
-          suspension_reason: reason,
-          suspended_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId)
-        .select()
-        .single();
+      // Use database function with activity logging
+      const { data, error } = await supabase.rpc('suspend_user_with_logging', {
+        p_user_id: userId,
+        p_admin_id: adminId,
+        p_reason: reason
+      });
 
       if (error) {
-        console.error('❌ suspendUser: Error:', error);
+        console.error('❌ suspendUser: Database function error:', error);
+        
+        // Fallback to basic update if function doesn't exist
+        console.log('🔄 suspendUser: Falling back to basic update...');
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('profiles')
+          .update({
+            status: 'suspended',
+            suspension_reason: reason,
+            suspended_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (fallbackError) {
+          return {
+            success: false,
+            message: 'Failed to suspend user',
+            error: fallbackError.message
+          };
+        }
+
+        console.log('✅ suspendUser: User suspended with fallback method');
         return {
-          success: false,
-          message: 'Failed to suspend user',
-          error: error.message
+          success: true,
+          message: 'User suspended successfully'
         };
       }
 
       if (data) {
-        console.log('✅ suspendUser: User suspended successfully');
+        console.log('✅ suspendUser: User suspended with activity logging');
         return {
           success: true,
           message: 'User suspended successfully'
@@ -291,32 +308,48 @@ export const adminAPI = {
 
   async activateUser(userId: string, adminId: string): Promise<ActionResult> {
     try {
-      console.log('✅ activateUser: Activating user with basic update...');
+      console.log('✅ activateUser: Activating user with activity logging...');
 
-      // Simple update instead of RPC call
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          status: 'approved',
-          suspension_reason: null,
-          suspended_at: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId)
-        .select()
-        .single();
+      // Use database function with activity logging
+      const { data, error } = await supabase.rpc('activate_user_with_logging', {
+        p_user_id: userId,
+        p_admin_id: adminId
+      });
 
       if (error) {
-        console.error('❌ activateUser: Error:', error);
+        console.error('❌ activateUser: Database function error:', error);
+        
+        // Fallback to basic update if function doesn't exist
+        console.log('🔄 activateUser: Falling back to basic update...');
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('profiles')
+          .update({
+            status: 'approved',
+            suspension_reason: null,
+            suspended_at: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (fallbackError) {
+          return {
+            success: false,
+            message: 'Failed to activate user',
+            error: fallbackError.message
+          };
+        }
+
+        console.log('✅ activateUser: User activated with fallback method');
         return {
-          success: false,
-          message: 'Failed to activate user',
-          error: error.message
+          success: true,
+          message: 'User activated successfully'
         };
       }
 
       if (data) {
-        console.log('✅ activateUser: User activated successfully');
+        console.log('✅ activateUser: User activated with activity logging');
         return {
           success: true,
           message: 'User activated successfully'
@@ -343,31 +376,48 @@ export const adminAPI = {
     reason: string = 'Admin deletion'
   ): Promise<ActionResult> {
     try {
-      console.log('🗑️ deleteUser: Soft deleting user with basic update...');
+      console.log('🗑️ deleteUser: Soft deleting user with activity logging...');
 
-      // Simple soft delete instead of RPC call
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          deleted_at: new Date().toISOString(),
-          deletion_reason: reason,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId)
-        .select()
-        .single();
+      // Use database function with activity logging
+      const { data, error } = await supabase.rpc('soft_delete_user_with_logging', {
+        p_user_id: userId,
+        p_admin_id: adminId,
+        p_reason: reason
+      });
 
       if (error) {
-        console.error('❌ deleteUser: Error:', error);
+        console.error('❌ deleteUser: Database function error:', error);
+        
+        // Fallback to basic update if function doesn't exist
+        console.log('🔄 deleteUser: Falling back to basic update...');
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('profiles')
+          .update({
+            deleted_at: new Date().toISOString(),
+            deletion_reason: reason,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (fallbackError) {
+          return {
+            success: false,
+            message: 'Failed to delete user',
+            error: fallbackError.message
+          };
+        }
+
+        console.log('✅ deleteUser: User deleted with fallback method');
         return {
-          success: false,
-          message: 'Failed to delete user',
-          error: error.message
+          success: true,
+          message: 'User deleted successfully'
         };
       }
 
       if (data) {
-        console.log('✅ deleteUser: User deleted successfully');
+        console.log('✅ deleteUser: User deleted with activity logging');
         return {
           success: true,
           message: 'User deleted successfully'

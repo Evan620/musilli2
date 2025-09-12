@@ -836,13 +836,6 @@ const AdminDashboard = () => {
                 Plans
               </TabsTrigger>
               <TabsTrigger
-                value="land"
-                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 py-3 px-4 rounded-lg font-medium"
-              >
-                <TreePine className="w-4 h-4 mr-2" />
-                Land
-              </TabsTrigger>
-              <TabsTrigger
                 value="commercial"
                 className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 py-3 px-4 rounded-lg font-medium"
               >
