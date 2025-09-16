@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useProperties } from "@/contexts/PropertyContext";
 import { useProviders } from "@/contexts/ProviderContext";
 import { PropertySearchFilters } from "@/types";
+import { paramsToPropertyFilters, parseCSVParam } from "@/utils/filterParams";
 
 import { Search, MapPin, Eye, MessageSquare, Bed, Bath, Car, Home, Building2, ArrowLeft } from "lucide-react";
 
@@ -121,18 +122,22 @@ const Rentals = () => {
     }
   }, [showAllProperties, searchType]);
 
-  // Initialize filters from URL parameters
+  // Initialize filters from URL parameters (including AdvancedSearch mapping)
   useEffect(() => {
+    const featuresFromUrl = parseCSVParam(searchParams.get('features')) || [];
+
+    const base = paramsToPropertyFilters(searchParams);
     const urlFilters: PropertySearchFilters = {
-      query: searchParams.get('query') || "",
-      category: (searchParams.get('category') as any) || (showAllProperties ? undefined : "rent"),
-      type: (searchParams.get('type') as any) || undefined,
-      city: searchParams.get('city') || undefined,
-      providerId: searchParams.get('provider') || undefined,
-      sortBy: (searchParams.get('sortBy') as any) || "date",
-      sortOrder: (searchParams.get('sortOrder') as any) || "desc",
+      ...base,
+      category: (searchParams.get('category') as any) || (showAllProperties ? undefined : 'rent'),
     };
+
     setFilters(urlFilters);
+
+    // Also hydrate feature chips for Rentals page
+    if (featuresFromUrl.length > 0) {
+      setSelectedFeatures(featuresFromUrl);
+    }
   }, [searchParams, showAllProperties]);
 
   const handleFilterChange = (key: keyof PropertySearchFilters, value: any) => {

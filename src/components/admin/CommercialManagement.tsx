@@ -11,6 +11,7 @@ import {
   Square, Car, MapPin, Clock, X
 } from "lucide-react";
 import { commercialService } from "@/lib/supabase-commercial";
+import { propertyService } from "@/lib/supabase-properties";
 import { CommercialSearchFilters, CommercialPropertyType, BuildingClass } from "@/types";
 import { CommercialPropertyForm } from "@/components/ui/commercial-property-form";
 
@@ -97,21 +98,62 @@ const CommercialManagement = () => {
     try {
       console.log('🏢 Saving commercial property:', formData);
 
-      if (editingProperty) {
-        // Update existing property
-        console.log('Updating existing commercial property...');
-        // TODO: Implement update functionality
-        alert('Update functionality will be implemented soon!');
+      // Split into base property and commercial details
+      const { title, description, price, currency, images, location, features, ...commercialDetails } = formData || {};
+
+      if (editingProperty?.id) {
+        // Update base property
+        await propertyService.updateProperty(editingProperty.id, {
+          title,
+          description,
+          price,
+          currency,
+          type: 'commercial'
+        } as any);
+
+        // Upsert commercial details
+        await commercialService.createCommercialProperty(editingProperty.id, commercialDetails);
       } else {
-        // Create new property
-        console.log('Creating new commercial property...');
-        // TODO: Implement create functionality
-        alert('Create functionality will be implemented soon! This would create a new commercial property with the provided details.');
+        // Create base property first (admin auto-publish)
+        const created = await propertyService.createProperty({
+          title,
+          description,
+          type: 'commercial',
+          category: 'rent',
+          price,
+          currency,
+          location: {
+            address: location?.address || '',
+            city: location?.city || '',
+            state: location?.state || '',
+            country: location?.country || 'Kenya',
+            zipCode: location?.zipCode || ''
+          },
+          features: {
+            bedrooms: 0,
+            bathrooms: 0,
+            area: features?.area || 0,
+            areaUnit: features?.areaUnit || 'sqft',
+            parking: features?.parking || 0,
+            furnished: false,
+            petFriendly: false,
+            amenities: '',
+            utilities: ''
+          },
+          images: images || []
+        } as any);
+
+        if (!created.success || !created.propertyId) {
+          throw new Error(created.error || 'Failed to create base property');
+        }
+
+        // Attach commercial details
+        await commercialService.createCommercialProperty(created.propertyId, commercialDetails);
       }
 
       setShowAddForm(false);
       setEditingProperty(null);
-      loadCommercialProperties(); // Refresh the list
+      await loadCommercialProperties();
     } catch (error) {
       console.error('❌ Error saving commercial property:', error);
       alert('Failed to save commercial property. Please try again.');

@@ -81,7 +81,7 @@ export const landService = {
     }
   },
 
-  // Get land properties with enhanced filtering (fallback for missing land_details table)
+  // Get land properties with enhanced filtering (tries land_details first, falls back if unavailable)
   async searchLandProperties(filters: {
     zoning?: string;
     minArea?: number;
@@ -89,13 +89,80 @@ export const landService = {
     developmentStatus?: string;
     electricityAvailable?: boolean;
     waterConnectionAvailable?: boolean;
+    sewerConnectionAvailable?: boolean;
+    internetCoverage?: boolean;
     priceRange?: { min: number; max: number };
     city?: string;
   }): Promise<Property[]> {
     try {
       console.log('🔍 Searching land properties with filters:', filters);
 
-      // Fallback: Use basic property query without land_details (until migration is run)
+      // Try enhanced query including land_details first
+      try {
+        let enhanced = supabase
+          .from('properties')
+          .select(`
+            *,
+            property_locations(*),
+            property_features(*),
+            property_amenities(*),
+            property_utilities(*),
+            property_images(*),
+            providers(*),
+            land_details(*)
+          `)
+          .eq('type', 'land')
+          .eq('status', 'published');
+
+        // Price range
+        if (filters.priceRange) {
+          if (filters.priceRange.min) enhanced = enhanced.gte('price', filters.priceRange.min);
+          if (filters.priceRange.max) enhanced = enhanced.lte('price', filters.priceRange.max);
+        }
+
+        // City (via joined location)
+        if (filters.city) {
+          enhanced = enhanced.eq('property_locations.city', filters.city);
+        }
+
+        // Area (raw filter on stored area)
+        if (typeof filters.minArea === 'number') {
+          enhanced = enhanced.gte('property_features.area', filters.minArea);
+        }
+        if (typeof filters.maxArea === 'number') {
+          enhanced = enhanced.lte('property_features.area', filters.maxArea);
+        }
+
+        // Land-specific filters via land_details
+        if (filters.zoning) {
+          enhanced = enhanced.eq('land_details.zoning', filters.zoning);
+        }
+        if (filters.developmentStatus) {
+          enhanced = enhanced.eq('land_details.development_status', filters.developmentStatus);
+        }
+        if (filters.electricityAvailable !== undefined) {
+          enhanced = enhanced.eq('land_details.electricity_available', filters.electricityAvailable);
+        }
+        if (filters.waterConnectionAvailable !== undefined) {
+          enhanced = enhanced.eq('land_details.water_connection_available', filters.waterConnectionAvailable);
+        }
+        if (filters.sewerConnectionAvailable !== undefined) {
+          enhanced = enhanced.eq('land_details.sewer_connection_available', filters.sewerConnectionAvailable);
+        }
+        if (filters.internetCoverage !== undefined) {
+          enhanced = enhanced.eq('land_details.internet_coverage', filters.internetCoverage);
+        }
+
+        const { data, error } = await enhanced.order('created_at', { ascending: false });
+        if (error) throw error;
+
+        console.log('✅ Found', data?.length || 0, 'land properties (enhanced)');
+        return data?.map((item) => this.transformLandPropertyData(item)) || [];
+      } catch (enhancedError) {
+        console.log('⚠️ Enhanced land search failed or land_details unavailable, using basic query...', enhancedError?.message || enhancedError);
+      }
+
+      // Fallback: Use basic property query without land_details
       let query = supabase
         .from('properties')
         .select(`
@@ -112,24 +179,26 @@ export const landService = {
 
       // Apply basic filters that work with existing schema
       if (filters.priceRange) {
-        if (filters.priceRange.min) {
-          query = query.gte('price', filters.priceRange.min);
-        }
-        if (filters.priceRange.max) {
-          query = query.lte('price', filters.priceRange.max);
-        }
+        if (filters.priceRange.min) query = query.gte('price', filters.priceRange.min);
+        if (filters.priceRange.max) query = query.lte('price', filters.priceRange.max);
+      }
+      if (filters.city) {
+        query = query.eq('property_locations.city', filters.city);
+      }
+      if (typeof filters.minArea === 'number') {
+        query = query.gte('property_features.area', filters.minArea);
+      }
+      if (typeof filters.maxArea === 'number') {
+        query = query.lte('property_features.area', filters.maxArea);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
-
       if (error) {
-        console.error('❌ Error searching land properties:', error);
+        console.error('❌ Error searching land properties (fallback):', error);
         return [];
       }
 
-      console.log('✅ Found', data?.length || 0, 'land properties');
-
-      // Use existing property transformation (without land details)
+      console.log('✅ Found', data?.length || 0, 'land properties (basic)');
       return data?.map((item) => this.transformLandPropertyData(item)) || [];
     } catch (error) {
       console.error('❌ Exception searching land properties:', error);

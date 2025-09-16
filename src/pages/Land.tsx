@@ -30,6 +30,10 @@ const Land = () => {
     developmentStatus: "all",
     electricityAvailable: undefined as boolean | undefined,
     waterConnectionAvailable: undefined as boolean | undefined,
+    sewerConnectionAvailable: undefined as boolean | undefined,
+    internetCoverage: undefined as boolean | undefined,
+    minArea: undefined as number | undefined,
+    maxArea: undefined as number | undefined,
   });
 
   // Load land properties with enhanced filtering
@@ -44,12 +48,16 @@ const Land = () => {
         developmentStatus: landFilters.developmentStatus === "all" ? undefined : landFilters.developmentStatus,
         electricityAvailable: landFilters.electricityAvailable,
         waterConnectionAvailable: landFilters.waterConnectionAvailable,
+        sewerConnectionAvailable: landFilters.sewerConnectionAvailable,
+        internetCoverage: landFilters.internetCoverage,
+        minArea: landFilters.minArea,
+        maxArea: landFilters.maxArea,
         city: filters.city,
         priceRange: filters.minPrice || filters.maxPrice ? {
           min: filters.minPrice || 0,
           max: filters.maxPrice || 0
         } : undefined
-      };
+      } as const;
 
       const enhancedResults = await landService.searchLandProperties(searchFilters);
 
@@ -77,7 +85,19 @@ const Land = () => {
   // Load properties on mount and when filters change
   useEffect(() => {
     loadLandProperties();
-  }, [filters.city, filters.minPrice, filters.maxPrice, landFilters.zoning, landFilters.developmentStatus, landFilters.electricityAvailable, landFilters.waterConnectionAvailable]);
+  }, [
+    filters.city,
+    filters.minPrice,
+    filters.maxPrice,
+    landFilters.zoning,
+    landFilters.developmentStatus,
+    landFilters.electricityAvailable,
+    landFilters.waterConnectionAvailable,
+    landFilters.sewerConnectionAvailable,
+    landFilters.internetCoverage,
+    landFilters.minArea,
+    landFilters.maxArea,
+  ]);
 
   // Handle land-specific filter changes
   const handleLandFilterChange = (key: string, value: any) => {
@@ -193,6 +213,34 @@ const Land = () => {
             </SelectContent>
           </Select>
 
+          <Select
+            value={landFilters.sewerConnectionAvailable === undefined ? "any" : landFilters.sewerConnectionAvailable.toString()}
+            onValueChange={(value) => handleLandFilterChange('sewerConnectionAvailable', value === "any" ? undefined : value === "true")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sewer" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any</SelectItem>
+              <SelectItem value="true">With Sewer</SelectItem>
+              <SelectItem value="false">Without Sewer</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={landFilters.internetCoverage === undefined ? "any" : landFilters.internetCoverage.toString()}
+            onValueChange={(value) => handleLandFilterChange('internetCoverage', value === "any" ? undefined : value === "true")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Internet Coverage" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any</SelectItem>
+              <SelectItem value="true">With Internet</SelectItem>
+              <SelectItem value="false">Without Internet</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button
             onClick={loadLandProperties}
             className="flex items-center gap-2"
@@ -217,11 +265,43 @@ const Land = () => {
                 developmentStatus: "all",
                 electricityAvailable: undefined,
                 waterConnectionAvailable: undefined,
+                sewerConnectionAvailable: undefined,
+                internetCoverage: undefined,
+                minArea: undefined,
+                maxArea: undefined,
               });
             }}
           >
             Clear Filters
           </Button>
+        </div>
+
+        {/* Area and Price Filters */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-4">
+          <Input
+            type="number"
+            placeholder="Min Area"
+            value={landFilters.minArea ?? ''}
+            onChange={(e) => handleLandFilterChange('minArea', e.target.value ? Number(e.target.value) : undefined)}
+          />
+          <Input
+            type="number"
+            placeholder="Max Area"
+            value={landFilters.maxArea ?? ''}
+            onChange={(e) => handleLandFilterChange('maxArea', e.target.value ? Number(e.target.value) : undefined)}
+          />
+          <Input
+            type="number"
+            placeholder="Min Price (KSH)"
+            value={filters.minPrice ?? ''}
+            onChange={(e) => handleFilterChange('minPrice', e.target.value ? Number(e.target.value) : undefined)}
+          />
+          <Input
+            type="number"
+            placeholder="Max Price (KSH)"
+            value={filters.maxPrice ?? ''}
+            onChange={(e) => handleFilterChange('maxPrice', e.target.value ? Number(e.target.value) : undefined)}
+          />
         </div>
       </section>
 

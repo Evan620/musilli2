@@ -65,6 +65,77 @@ export const commercialService = {
     }
   },
 
+  // Update or insert (upsert-like) commercial property details by property_id
+  async updateCommercialProperty(propertyId: string, commercialData: Partial<CommercialPropertyDetails>) {
+    try {
+      // Check if details exist
+      const { data: existing, error: fetchError } = await supabase
+        .from('commercial_property_details')
+        .select('id')
+        .eq('property_id', propertyId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('❌ Error checking commercial details:', fetchError);
+        return { success: false, error: fetchError.message };
+      }
+
+      const payload: any = {
+        commercial_type: commercialData.commercialType,
+        building_class: commercialData.buildingClass,
+        zoning_type: commercialData.zoningType,
+        year_built: commercialData.yearBuilt,
+        total_building_size: commercialData.totalBuildingSize,
+        available_space: commercialData.availableSpace,
+        ceiling_height: commercialData.ceilingHeight,
+        loading_docks: commercialData.loadingDocks,
+        parking_spaces: commercialData.parkingSpaces,
+        parking_ratio: commercialData.parkingRatio,
+        lease_type: commercialData.leaseType,
+        lease_term_min: commercialData.leaseTermMin,
+        lease_term_max: commercialData.leaseTermMax,
+        rent_per_sqft: commercialData.rentPerSqft,
+        cam_charges: commercialData.camCharges,
+        security_deposit_months: commercialData.securityDepositMonths,
+        annual_escalation: commercialData.annualEscalation,
+        current_occupancy_rate: commercialData.currentOccupancyRate,
+        anchor_tenants: commercialData.anchorTenants,
+        tenant_mix: commercialData.tenantMix,
+        occupancy_certificate_valid: commercialData.occupancyCertificateValid,
+        fire_safety_compliant: commercialData.fireSafetyCompliant,
+        ada_compliant: commercialData.adaCompliant,
+        permitted_uses: commercialData.permittedUses,
+        signage_rights: commercialData.signageRights,
+        drive_through_available: commercialData.driveThroughAvailable,
+        restaurant_approved: commercialData.restaurantApproved,
+      };
+
+      if (!existing) {
+        // Insert new
+        const { data, error } = await supabase
+          .from('commercial_property_details')
+          .insert({ property_id: propertyId, ...payload })
+          .select()
+          .single();
+        if (error) return { success: false, error: error.message };
+        return { success: true, data };
+      } else {
+        // Update existing
+        const { data, error } = await supabase
+          .from('commercial_property_details')
+          .update(payload)
+          .eq('property_id', propertyId)
+          .select()
+          .single();
+        if (error) return { success: false, error: error.message };
+        return { success: true, data };
+      }
+    } catch (error) {
+      console.error('❌ Exception updating commercial property:', error);
+      return { success: false, error: 'Failed to update commercial property' };
+    }
+  },
+
   // Search commercial properties
   async searchCommercialProperties(filters: CommercialSearchFilters = {}) {
     try {

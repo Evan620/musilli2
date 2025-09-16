@@ -294,6 +294,48 @@ export const providerService = {
     }
   },
 
+  // Delete a provider (soft delete)
+  async deleteProvider(providerId: string, adminId: string): Promise<boolean> {
+    try {
+      console.log('🗑️ Admin soft-deleting provider:', providerId);
+
+      // First, get the user_id associated with the provider
+      const { data: provider, error: fetchError } = await supabase
+        .from('providers')
+        .select('user_id')
+        .eq('id', providerId)
+        .single();
+
+      if (fetchError || !provider) {
+        console.error('Error fetching provider for deletion:', fetchError);
+        return false;
+      }
+
+      // Call the soft_delete_user RPC function
+      const { data, error } = await supabase.rpc('soft_delete_user', {
+        p_user_id: provider.user_id,
+        p_admin_id: adminId,
+        p_reason: 'Provider deleted by admin'
+      });
+
+      if (error) {
+        console.error('❌ Error soft-deleting user (provider):', error);
+        return false;
+      }
+
+      if (data) {
+        console.log('✅ Provider (user profile) soft-deleted successfully, cascade initiated.');
+        return true;
+      } else {
+        console.log('❌ Soft-delete operation returned false.');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error in deleteProvider:', error);
+      return false;
+    }
+  },
+
   // Transform database data to match existing interface
   transformProviderData(provider: any): ProviderWithProfile {
     const profile = provider.profiles || {}

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { planService } from "@/lib/supabase-plans";
 import { ArchitecturalPlan, PlanCategory, PlanStatus } from "@/types";
 import { ArchitecturalPlanForm } from "@/components/ui/architectural-plan-form";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Home,
   Eye,
@@ -89,9 +90,12 @@ const PlansManagement = () => {
       .slice(0, 5);
   };
 
+  const { user } = useAuth();
+
   const handleApprovePlan = async (planId: string) => {
     try {
-      const result = await planService.approvePlan(planId, 'admin-user-id'); // TODO: Get actual admin ID
+      const adminId = user?.id || 'admin-user-id';
+      const result = await planService.approvePlan(planId, adminId);
       if (result.success) {
         console.log('✅ Plan approved');
         loadPlansData(); // Refresh data
@@ -105,7 +109,8 @@ const PlansManagement = () => {
 
   const handleRejectPlan = async (planId: string, reason: string) => {
     try {
-      const result = await planService.rejectPlan(planId, 'admin-user-id', reason); // TODO: Get actual admin ID
+      const adminId = user?.id || 'admin-user-id';
+      const result = await planService.rejectPlan(planId, adminId, reason);
       if (result.success) {
         console.log('✅ Plan rejected');
         loadPlansData(); // Refresh data
@@ -130,24 +135,27 @@ const PlansManagement = () => {
   };
 
   // Handle save plan
-  const handleSavePlan = async (formData: any) => {
+  const handleSavePlan = async (formData: Partial<ArchitecturalPlan>) => {
     setIsSubmitting(true);
     try {
       console.log('📋 Saving architectural plan:', formData);
 
       if (editingPlan) {
         // Update existing plan
-        console.log('Updating existing plan...');
-        alert('Update functionality will be implemented soon!');
+        const result = await planService.updatePlan(editingPlan.id, formData);
+        if (!result.success) throw new Error(result.error || 'Failed to update plan');
       } else {
         // Create new plan
-        console.log('Creating new architectural plan...');
-        alert('Create functionality will be implemented soon! This would create a new architectural plan with the provided details.');
+        const created = await planService.createPlan({
+          ...formData,
+          createdBy: user?.id,
+        });
+        if (!created.success) throw new Error(created.error || 'Failed to create plan');
       }
 
       setShowAddForm(false);
       setEditingPlan(null);
-      loadPlansData(); // Refresh the list
+      await loadPlansData();
     } catch (error) {
       console.error('❌ Error saving plan:', error);
       alert('Failed to save plan. Please try again.');

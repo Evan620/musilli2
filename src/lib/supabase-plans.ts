@@ -28,7 +28,7 @@ export const planService = {
         return [];
       }
 
-      return data?.map(this.mapDatabaseToPlan) || [];
+      return data?.map((item) => this.mapDatabaseToPlan(item)) || [];
     } catch (error) {
       console.error('Error in getPublishedPlans:', error);
       return [];
@@ -112,7 +112,7 @@ export const planService = {
         return [];
       }
 
-      return data?.map(this.mapDatabaseToPlan) || [];
+      return data?.map((item) => this.mapDatabaseToPlan(item)) || [];
     } catch (error) {
       console.error('Error in searchPlans:', error);
       return [];
@@ -210,7 +210,7 @@ export const planService = {
         return [];
       }
 
-      return data?.map(this.mapDatabaseToPurchase) || [];
+      return data?.map((item) => this.mapDatabaseToPurchase(item)) || [];
     } catch (error) {
       console.error('Error in getCustomerPurchases:', error);
       return [];
@@ -233,10 +233,85 @@ export const planService = {
         return [];
       }
 
-      return data?.map(this.mapDatabaseToPlan) || [];
+      return data?.map((item) => this.mapDatabaseToPlan(item)) || [];
     } catch (error) {
       console.error('Error in getAllPlans:', error);
       return [];
+    }
+  },
+
+  async createPlan(plan: Partial<ArchitecturalPlan>): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('architectural_plans')
+        .insert({
+          title: plan.title,
+          description: plan.description,
+          category: plan.category,
+          status: plan.status || 'draft',
+          bedrooms: plan.bedrooms,
+          bathrooms: plan.bathrooms,
+          area: plan.area,
+          area_unit: plan.areaUnit,
+          floors: plan.floors || 1,
+          price: plan.price,
+          currency: plan.currency || 'KSH',
+          discount_percentage: plan.discountPercentage || 0,
+          features: plan.features || [],
+          style: plan.style,
+          is_featured: !!plan.isFeatured,
+          tags: plan.tags || [],
+          created_by: plan.createdBy || null,
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating plan:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, id: data?.id };
+    } catch (error) {
+      console.error('Error in createPlan:', error);
+      return { success: false, error: 'An unexpected error occurred' };
+    }
+  },
+
+  async updatePlan(id: string, plan: Partial<ArchitecturalPlan>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const updateData: any = {};
+      if (plan.title !== undefined) updateData.title = plan.title;
+      if (plan.description !== undefined) updateData.description = plan.description;
+      if (plan.category !== undefined) updateData.category = plan.category;
+      if (plan.status !== undefined) updateData.status = plan.status;
+      if (plan.bedrooms !== undefined) updateData.bedrooms = plan.bedrooms;
+      if (plan.bathrooms !== undefined) updateData.bathrooms = plan.bathrooms;
+      if (plan.area !== undefined) updateData.area = plan.area;
+      if (plan.areaUnit !== undefined) updateData.area_unit = plan.areaUnit;
+      if (plan.floors !== undefined) updateData.floors = plan.floors;
+      if (plan.price !== undefined) updateData.price = plan.price;
+      if (plan.currency !== undefined) updateData.currency = plan.currency;
+      if (plan.discountPercentage !== undefined) updateData.discount_percentage = plan.discountPercentage;
+      if (plan.features !== undefined) updateData.features = plan.features;
+      if (plan.style !== undefined) updateData.style = plan.style;
+      if (plan.isFeatured !== undefined) updateData.is_featured = plan.isFeatured;
+      if (plan.tags !== undefined) updateData.tags = plan.tags;
+
+      const { error } = await supabase
+        .from('architectural_plans')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating plan:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in updatePlan:', error);
+      return { success: false, error: 'An unexpected error occurred' };
     }
   },
 
@@ -279,6 +354,144 @@ export const planService = {
     }
   },
 
+  // Upload plan files to storage and create plan_files records
+  async uploadPlanFiles(
+    planId: string,
+    files: File[],
+    fileType: PlanFileType,
+    options?: { setPrimaryFromFirst?: boolean }
+  ): Promise<{ success: boolean; error?: string; uploaded?: number }> {
+    try {
+      if (!files || files.length === 0) return { success: true, uploaded: 0 };
+
+      const setPrimaryFromFirst = options?.setPrimaryFromFirst ?? true;
+      let uploadedCount = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'dat';
+        const objectPath = `${planId}/${Date.now()}-${i}.${ext}`;
+
+        // Upload to storage bucket
+        const { error: uploadError } = await supabase.storage
+          .from('plan-files')
+          .upload(objectPath, file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) {
+          console.error('❌ Plan file upload error:', uploadError);
+          continue;
+        }
+
+        // Get public URL
+        const { data: publicRes } = supabase.storage
+          .from('plan-files')
+          .getPublicUrl(objectPath);
+
+        const publicUrl = publicRes?.publicUrl;
+
+        // Insert DB record
+        const { error: insertError } = await supabase
+          .from('plan_files')
+          .insert({
+            plan_id: planId,
+            file_type: fileType,
+            file_name: objectPath,
+            file_url: publicUrl,
+            file_size: file.size,
+            is_primary: setPrimaryFromFirst && uploadedCount === 0,
+            display_order: uploadedCount + 1
+          });
+
+        if (insertError) {
+          console.error('❌ Error saving plan file record:', insertError);
+          // Best effort cleanup
+          await supabase.storage.from('plan-files').remove([objectPath]);
+          continue;
+        }
+
+        uploadedCount++;
+      }
+
+      return { success: true, uploaded: uploadedCount };
+    } catch (error) {
+      console.error('Error in uploadPlanFiles:', error);
+      return { success: false, error: 'Failed to upload plan files' };
+    }
+  },
+
+  // Set a specific file as primary for a plan (ensures only one primary)
+  async setPrimaryPlanFile(planId: string, fileId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Clear existing primary flags
+      const { error: clearError } = await supabase
+        .from('plan_files')
+        .update({ is_primary: false })
+        .eq('plan_id', planId);
+      if (clearError) return { success: false, error: clearError.message };
+
+      // Set selected file as primary
+      const { error: setError } = await supabase
+        .from('plan_files')
+        .update({ is_primary: true })
+        .eq('id', fileId);
+      if (setError) return { success: false, error: setError.message };
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in setPrimaryPlanFile:', error);
+      return { success: false, error: 'Failed to set primary file' };
+    }
+  },
+
+  // Delete a plan file (removes storage object and DB record)
+  async deletePlanFile(fileId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('plan_files')
+        .select('id, file_name')
+        .eq('id', fileId)
+        .single();
+      if (fetchError || !data) return { success: false, error: fetchError?.message || 'File not found' };
+
+      const objectPath = data.file_name as string;
+
+      // Remove storage object (best effort)
+      await supabase.storage.from('plan-files').remove([objectPath]);
+
+      // Remove DB record
+      const { error: deleteError } = await supabase
+        .from('plan_files')
+        .delete()
+        .eq('id', fileId);
+      if (deleteError) return { success: false, error: deleteError.message };
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in deletePlanFile:', error);
+      return { success: false, error: 'Failed to delete plan file' };
+    }
+  },
+
+  // Reorder plan files by providing an ordered list of file IDs
+  async reorderPlanFiles(planId: string, orderedFileIds: string[]): Promise<{ success: boolean; error?: string }> {
+    try {
+      // For each id, set display_order = index + 1
+      for (let i = 0; i < orderedFileIds.length; i++) {
+        const id = orderedFileIds[i];
+        const { error } = await supabase
+          .from('plan_files')
+          .update({ display_order: i + 1 })
+          .eq('id', id)
+          .eq('plan_id', planId);
+        if (error) return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Error in reorderPlanFiles:', error);
+      return { success: false, error: 'Failed to reorder plan files' };
+    }
+  },
+
   // Helper functions
   mapDatabaseToPlan(data: any): ArchitecturalPlan {
     return {
@@ -311,8 +524,8 @@ export const planService = {
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
       publishedAt: data.published_at ? new Date(data.published_at) : undefined,
-      files: data.plan_files?.map(this.mapDatabaseToPlanFile) || [],
-      reviews: data.plan_reviews?.map(this.mapDatabaseToReview) || []
+      files: data.plan_files?.map((file: any) => this.mapDatabaseToPlanFile(file)) || [],
+      reviews: data.plan_reviews?.map((review: any) => this.mapDatabaseToReview(review)) || []
     };
   },
 

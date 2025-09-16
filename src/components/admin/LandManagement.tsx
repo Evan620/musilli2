@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { landService } from "@/lib/supabase-land";
+import { propertyService } from "@/lib/supabase-properties";
 import { Property, LandZoning, DevelopmentStatus } from "@/types";
 import { LandPropertyForm } from "@/components/ui/land-property-form";
 import {
@@ -52,6 +53,10 @@ export const LandManagement = () => {
     developmentStatus: "all",
     electricityAvailable: undefined as boolean | undefined,
     waterConnectionAvailable: undefined as boolean | undefined,
+    sewerConnectionAvailable: undefined as boolean | undefined,
+    internetCoverage: undefined as boolean | undefined,
+    minArea: undefined as number | undefined,
+    maxArea: undefined as number | undefined,
     priceRange: { min: 0, max: 0 }
   });
 
@@ -82,8 +87,13 @@ export const LandManagement = () => {
       const searchFilters = {
         zoning: filters.zoning === "all" ? undefined : filters.zoning,
         developmentStatus: filters.developmentStatus === "all" ? undefined : filters.developmentStatus,
-        electricityAvailable: filters.electricityAvailable === "any" ? undefined : filters.electricityAvailable,
-        waterConnectionAvailable: filters.waterConnectionAvailable === "any" ? undefined : filters.waterConnectionAvailable,
+        electricityAvailable: typeof filters.electricityAvailable === 'boolean' ? filters.electricityAvailable : undefined,
+        waterConnectionAvailable: typeof filters.waterConnectionAvailable === 'boolean' ? filters.waterConnectionAvailable : undefined,
+        sewerConnectionAvailable: typeof filters.sewerConnectionAvailable === 'boolean' ? filters.sewerConnectionAvailable : undefined,
+        internetCoverage: typeof filters.internetCoverage === 'boolean' ? filters.internetCoverage : undefined,
+        minArea: typeof filters.minArea === 'number' ? filters.minArea : undefined,
+        maxArea: typeof filters.maxArea === 'number' ? filters.maxArea : undefined,
+        priceRange: filters.priceRange.min || filters.priceRange.max ? filters.priceRange : undefined,
         city: searchQuery || undefined
       };
       const properties = await landService.searchLandProperties(searchFilters);
@@ -113,19 +123,66 @@ export const LandManagement = () => {
     try {
       console.log('🏞️ Saving land property:', formData);
 
-      if (editingLand) {
-        // Update existing land
-        console.log('Updating existing land property...');
-        alert('Update functionality will be implemented soon!');
+      // Split combined form payload
+      const { landDetails: ld, ...base } = formData || {};
+
+      if (editingLand?.id) {
+        // Update existing property core fields (title/desc/price/currency)
+        await propertyService.updateProperty(editingLand.id, {
+          title: base.title,
+          description: base.description,
+          price: base.price,
+          currency: base.currency,
+          type: 'land'
+        } as any);
+
+        // Update land_details via helper transform
+        await landService.updateLandDetails(editingLand.id, {
+          zoning: ld?.zoning,
+          developmentStatus: ld?.developmentStatus,
+          electricityAvailable: !!ld?.electricityAvailable,
+          waterConnectionAvailable: !!ld?.waterConnectionAvailable,
+          sewerConnectionAvailable: !!ld?.sewerConnectionAvailable,
+          internetCoverage: !!ld?.internetAvailable,
+          roadAccess: ld?.roadAccess,
+          soilType: ld?.soilType,
+          topography: ld?.topography,
+        });
       } else {
-        // Create new land
-        console.log('Creating new land property...');
-        alert('Create functionality will be implemented soon! This would create a new land property with the provided details.');
+        // Create core property first as published (admin)
+        const createResult = await propertyService.createProperty({
+          title: base.title,
+          description: base.description,
+          type: 'land',
+          category: 'sale',
+          price: base.price,
+          currency: base.currency,
+          location: { address: '', city: '', state: '', country: 'Kenya', zipCode: '' },
+          features: { area: 0, areaUnit: 'acres', parking: 0, bedrooms: 0, bathrooms: 0, furnished: false, petFriendly: false, amenities: '', utilities: '' },
+          images: []
+        } as any);
+
+        if (!createResult.success || !createResult.propertyId) {
+          throw new Error(createResult.error || 'Failed to create base property');
+        }
+
+        // Attach land details to new property
+        await landService.updateLandDetails(createResult.propertyId, {
+          zoning: ld?.zoning,
+          developmentStatus: ld?.developmentStatus,
+          electricityAvailable: !!ld?.electricityAvailable,
+          waterConnectionAvailable: !!ld?.waterConnectionAvailable,
+          sewerConnectionAvailable: !!ld?.sewerConnectionAvailable,
+          internetCoverage: !!ld?.internetAvailable,
+          roadAccess: ld?.roadAccess,
+          soilType: ld?.soilType,
+          topography: ld?.topography,
+        });
       }
 
       setShowAddForm(false);
       setEditingLand(null);
-      loadLandData(); // Refresh the list
+      await loadLandData();
     } catch (error) {
       console.error('❌ Error saving land property:', error);
       alert('Failed to save land property. Please try again.');
@@ -256,6 +313,46 @@ export const LandManagement = () => {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
+                  <label className="text-sm font-medium">Min Area</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={filters.minArea ?? ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, minArea: e.target.value ? Number(e.target.value) : undefined }))}
+                    placeholder="e.g., 0.5 (acres)"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Max Area</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={filters.maxArea ?? ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, maxArea: e.target.value ? Number(e.target.value) : undefined }))}
+                    placeholder="e.g., 10 (acres)"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Min Price</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={filters.priceRange.min || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, priceRange: { ...prev.priceRange, min: e.target.value ? Number(e.target.value) : 0 } }))}
+                    placeholder="e.g., 1000000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Max Price</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={filters.priceRange.max || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, priceRange: { ...prev.priceRange, max: e.target.value ? Number(e.target.value) : 0 } }))}
+                    placeholder="e.g., 5000000"
+                  />
+                </div>
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Search by City</label>
                   <Input
                     placeholder="Enter city name..."
@@ -299,12 +396,12 @@ export const LandManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Infrastructure</label>
+                  <label className="text-sm font-medium">Electricity</label>
                   <Select 
-                    value={filters.electricityAvailable?.toString() || ""} 
+                    value={typeof filters.electricityAvailable === 'boolean' ? String(filters.electricityAvailable) : 'any'} 
                     onValueChange={(value) => setFilters(prev => ({ 
                       ...prev, 
-                      electricityAvailable: value === "" ? undefined : value === "true" 
+                      electricityAvailable: value === 'any' ? undefined : value === 'true' 
                     }))}
                   >
                     <SelectTrigger>
@@ -314,6 +411,66 @@ export const LandManagement = () => {
                       <SelectItem value="any">Any</SelectItem>
                       <SelectItem value="true">With Electricity</SelectItem>
                       <SelectItem value="false">Without Electricity</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Water</label>
+                  <Select 
+                    value={typeof filters.waterConnectionAvailable === 'boolean' ? String(filters.waterConnectionAvailable) : 'any'} 
+                    onValueChange={(value) => setFilters(prev => ({ 
+                      ...prev, 
+                      waterConnectionAvailable: value === 'any' ? undefined : value === 'true' 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Water" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      <SelectItem value="true">With Water</SelectItem>
+                      <SelectItem value="false">Without Water</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Sewer</label>
+                  <Select 
+                    value={typeof filters.sewerConnectionAvailable === 'boolean' ? String(filters.sewerConnectionAvailable) : 'any'} 
+                    onValueChange={(value) => setFilters(prev => ({ 
+                      ...prev, 
+                      sewerConnectionAvailable: value === 'any' ? undefined : value === 'true' 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sewer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      <SelectItem value="true">With Sewer</SelectItem>
+                      <SelectItem value="false">Without Sewer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Internet</label>
+                  <Select 
+                    value={typeof filters.internetCoverage === 'boolean' ? String(filters.internetCoverage) : 'any'} 
+                    onValueChange={(value) => setFilters(prev => ({ 
+                      ...prev, 
+                      internetCoverage: value === 'any' ? undefined : value === 'true' 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Internet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      <SelectItem value="true">With Internet</SelectItem>
+                      <SelectItem value="false">Without Internet</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -331,6 +488,10 @@ export const LandManagement = () => {
                     developmentStatus: "all",
                     electricityAvailable: undefined,
                     waterConnectionAvailable: undefined,
+                    sewerConnectionAvailable: undefined,
+                    internetCoverage: undefined,
+                    minArea: undefined,
+                    maxArea: undefined,
                     priceRange: { min: 0, max: 0 }
                   });
                   loadLandData();

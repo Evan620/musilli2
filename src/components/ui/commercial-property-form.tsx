@@ -33,6 +33,18 @@ export const CommercialPropertyForm = ({
   onCancel, 
   isLoading = false 
 }: CommercialPropertyFormProps) => {
+  // Basic property data
+  const [basicData, setBasicData] = useState({
+    title: '',
+    description: '',
+    price: 1000000,
+    currency: 'KSH',
+    type: 'commercial',
+    status: 'published',
+    ...initialData
+  });
+
+  // Commercial-specific data
   const [formData, setFormData] = useState<Partial<CommercialPropertyDetails>>({
     commercialType: 'office_class_a',
     zoningType: 'commercial',
@@ -82,7 +94,12 @@ export const CommercialPropertyForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    // Combine basic property data with commercial details
+    const combinedData = {
+      ...basicData,
+      ...formData
+    };
+    onSave(combinedData);
   };
 
   return (
@@ -121,6 +138,74 @@ export const CommercialPropertyForm = ({
 
         {/* Basic Information Tab */}
         <TabsContent value="basic" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="w-5 h-5" />
+                Property Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Title */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="title">Property Title *</Label>
+                  <Input
+                    id="title"
+                    value={basicData.title || ""}
+                    onChange={(e) => setBasicData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="e.g., Prime Office Space in Westlands"
+                    required
+                  />
+                </div>
+
+                {/* Price */}
+                <div className="space-y-2">
+                  <Label htmlFor="price">Price *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    min="0"
+                    value={basicData.price || 0}
+                    onChange={(e) => setBasicData(prev => ({ ...prev, price: Number(e.target.value) }))}
+                    placeholder="1000000"
+                    required
+                  />
+                </div>
+
+                {/* Currency */}
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select 
+                    value={basicData.currency} 
+                    onValueChange={(value) => setBasicData(prev => ({ ...prev, currency: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="KSH">KSH (Kenyan Shilling)</SelectItem>
+                      <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                      <SelectItem value="EUR">EUR (Euro)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={basicData.description || ""}
+                    onChange={(e) => setBasicData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Describe the commercial property..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

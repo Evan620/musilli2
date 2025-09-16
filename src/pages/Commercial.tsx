@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { commercialService } from "@/lib/supabase-commercial";
 import { CommercialSearchFilters, CommercialPropertyType, BuildingClass, CommercialZoning, LeaseType } from "@/types";
+import { paramsToCommercialFilters } from "@/utils/filterParams";
 
 const Commercial = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -54,6 +55,15 @@ const Commercial = () => {
       [key]: value === "all" ? undefined : value
     }));
   };
+
+  // Initialize filters from URL params if present
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlFilters = paramsToCommercialFilters(params);
+    if (Object.values(urlFilters).some(v => v !== undefined && v !== null && v !== '')) {
+      setFilters(prev => ({ ...prev, ...urlFilters }));
+    }
+  }, []);
 
   // Format commercial type for display
   const formatCommercialType = (type: CommercialPropertyType) => {
@@ -204,6 +214,60 @@ const Commercial = () => {
                 value={filters.maxRent || ""}
                 onChange={(e) => handleFilterChange('maxRent', e.target.value ? Number(e.target.value) : undefined)}
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+              {/* Zoning */}
+              <Select value={filters.zoning || "all"} onValueChange={(value) => handleFilterChange('zoning', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Zoning" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Zoning</SelectItem>
+                  <SelectItem value="commercial">Commercial</SelectItem>
+                  <SelectItem value="industrial">Industrial</SelectItem>
+                  <SelectItem value="mixed_use">Mixed Use</SelectItem>
+                  <SelectItem value="retail">Retail</SelectItem>
+                  <SelectItem value="office">Office</SelectItem>
+                  <SelectItem value="warehouse">Warehouse</SelectItem>
+                  <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Lease Type */}
+              <Select value={filters.leaseType || "all"} onValueChange={(value) => handleFilterChange('leaseType', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Lease Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Lease Types</SelectItem>
+                  <SelectItem value="triple_net">Triple Net (NNN)</SelectItem>
+                  <SelectItem value="gross">Gross</SelectItem>
+                  <SelectItem value="modified_gross">Modified Gross</SelectItem>
+                  <SelectItem value="percentage">Percentage</SelectItem>
+                  <SelectItem value="ground_lease">Ground Lease</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Min Parking */}
+              <Input
+                type="number"
+                placeholder="Min Parking Spaces"
+                value={filters.minParking || ""}
+                onChange={(e) => handleFilterChange('minParking', e.target.value ? Number(e.target.value) : undefined)}
+              />
+
+              {/* Required Amenities (CSV) */}
+              <Input
+                type="text"
+                placeholder="Required Amenities (CSV)"
+                onBlur={(e) => handleFilterChange('requiredAmenities', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+              />
+            </div>
+
+            <div className="flex justify-end mt-4 gap-2">
+              <Button variant="outline" onClick={() => setFilters({ query: "", sortBy: "date", sortOrder: "desc" })}>Clear</Button>
+              <Button onClick={loadCommercialProperties} disabled={isLoading}>Search</Button>
             </div>
           </CardContent>
         </Card>
